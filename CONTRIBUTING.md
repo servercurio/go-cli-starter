@@ -29,6 +29,28 @@ ls -l .git/hooks/prepare-commit-msg
 
 If the hook is missing, copy the script from `.claude/git-hooks.md` and `chmod +x` it.
 
+## Required commit signing
+
+Every contributor commit must be **GPG-signed** in addition to carrying the DCO `Signed-off-by:` trailer above. The release workflow already produces signed `chore(release)` commits via an imported key (`.github/workflows/800-call-semantic-release.yaml`); contributor commits must match so the entire `main` history verifies.
+
+Configure once per clone (or globally):
+
+```sh
+git config commit.gpgsign true
+git config user.signingkey <YOUR-GPG-KEY-ID>
+# Optional: also sign annotated tags
+git config tag.gpgsign true
+```
+
+Verify a commit you just authored:
+
+```sh
+git log -1 --show-signature
+# Look for "Good signature from ..." and a "G" in `git log --pretty='%G?'`
+```
+
+Don't bypass either requirement with `--no-gpg-sign` or `--no-verify`. If `gpg` prompts you for a passphrase on every commit, configure `gpg-agent` rather than disabling signing.
+
 ## Commit-message conventions
 
 This repo uses [Conventional Commits](https://www.conventionalcommits.org). The release flow (semantic-release) reads commit types to decide version bumps:
