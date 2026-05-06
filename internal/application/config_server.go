@@ -3,7 +3,7 @@ package application
 import (
 	"errors"
 
-	"github.com/servercurio/go-echo-starter/internal/env"
+	"github.com/servercurio/go-cli-starter/internal/env"
 )
 
 // ServerConfig groups every server-facing configuration block: the HTTP

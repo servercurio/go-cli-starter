@@ -2,7 +2,7 @@
   <img src="docs/logo.svg" alt="Server Curio — Project Templates" width="600">
 </p>
 
-# go-echo-starter
+# go-cli-starter
 
 A production-ready HTTP server starter template built on [Echo v5](https://github.com/labstack/echo). It provides a modular foundation for Go microservices with structured logging, flexible TLS, and reverse-proxy awareness — without imposing choices about persistence, auth, or business logic.
 
@@ -46,7 +46,7 @@ The compiled binary is named `appsvrd` (application server daemon).
 - **Layered configuration** — YAML/JSON config files plus environment variable overrides (prefix `APP_`)
 - **Graceful shutdown** on `SIGINT`, `SIGTERM`, and `SIGUSR1` (Unix) / `SIGINT` (Windows), with configurable timeout
 - **Cross-platform builds** for `linux`, `darwin`, `windows` × `amd64`, `arm64`
-- **Kubernetes-ready** — bundled Helm chart at `charts/go-echo-starter/` with optional `ServiceMonitor` / `PodMonitor` / Grafana Alloy `PodLogs`, structured seccomp at pod and container scope, user-supplied Secret support via `envFrom` and TLS volume mounts, and OCI publishing to GHCR
+- **Kubernetes-ready** — bundled Helm chart at `charts/go-cli-starter/` with optional `ServiceMonitor` / `PodMonitor` / Grafana Alloy `PodLogs`, structured seccomp at pod and container scope, user-supplied Secret support via `envFrom` and TLS volume mounts, and OCI publishing to GHCR
 - **Universal supply-chain attestations** — every release artifact and OCI subject (binaries, hash files, helm chart `.tgz`, container image, helm OCI artifact, all CycloneDX SBOMs in JSON and XML) carries a GitHub-signed Sigstore attestation verifiable with `gh attestation verify`
 
 ## Requirements
@@ -89,7 +89,7 @@ internal/
     orm/            # Bun ORM singleton + (your) domain models
   version/          # Build-time version metadata
 charts/
-  go-echo-starter/  # Helm chart — Chart.yaml, values.yaml, templates/, ci/{default,full}-values.yaml
+  go-cli-starter/  # Helm chart — Chart.yaml, values.yaml, templates/, ci/{default,full}-values.yaml
 .github/
   workflows/        # CI: PR Formatting, PR Checks (incl. Helm Lint + Helm Install), CodeQL, Deploy Release, reusable callees
     docs/           # Workflow naming-standards reference
@@ -331,9 +331,9 @@ import (
     "net/http"
 
     "github.com/labstack/echo/v5"
-    "github.com/servercurio/go-echo-starter/internal/api/std/endpoint"
-    "github.com/servercurio/go-echo-starter/internal/api/std/route"
-    "github.com/servercurio/go-echo-starter/internal/router"
+    "github.com/servercurio/go-cli-starter/internal/api/std/endpoint"
+    "github.com/servercurio/go-cli-starter/internal/api/std/route"
+    "github.com/servercurio/go-cli-starter/internal/router"
 )
 
 func PingRoute() router.Route {
@@ -368,12 +368,12 @@ Then wire it into `internal/api/v1/module.go` by adding `PingRoute()` to the exi
 | `task run:daemon`             | Build and run the local-platform binary                 |
 | `task build:container`        | Build the Docker image locally (single-arch, `--load` into the daemon) |
 | `task run:container`          | Build and run the Docker image                          |
-| `task container:build:multiarch` | Multi-arch (`linux/amd64,linux/arm64`) buildx push to `ghcr.io/servercurio/go-echo-starter`. Reads version from `internal/version/version.txt`. Used by the release pipeline. |
+| `task container:build:multiarch` | Multi-arch (`linux/amd64,linux/arm64`) buildx push to `ghcr.io/servercurio/go-cli-starter`. Reads version from `internal/version/version.txt`. Used by the release pipeline. |
 | `task container:sbom`         | Generate the container image CycloneDX SBOM (`bin/container-sbom.{json,xml}`) via `syft` |
 | `task container:sbom:sign`    | GPG-sign the container SBOM files                       |
-| `task helm:lint`              | `helm lint charts/go-echo-starter`                      |
+| `task helm:lint`              | `helm lint charts/go-cli-starter`                      |
 | `task helm:template`          | Render the chart with the full-values fixture, monitoring CRDs, and TLS overlay (catches gated-resource regressions) |
-| `task helm:package`           | Package the chart into `bin/go-echo-starter-<VERSION>.tgz` |
+| `task helm:package`           | Package the chart into `bin/go-cli-starter-<VERSION>.tgz` |
 | `task helm:hash`              | SHA-256 hash the packaged chart                         |
 | `task helm:sign`              | GPG-sign the chart hash file (`<chart>.tgz.sha256.asc`); the `.tgz` itself is NOT signed |
 | `task helm:sbom`              | Generate the helm chart CycloneDX SBOM (`bin/helm-sbom.{json,xml}`) via `syft` |
@@ -480,11 +480,11 @@ This test sets env vars under a custom prefix to exercise the `env.AddPrefix` pa
 
 ### 6. Helm chart name (optional)
 
-If you're shipping the chart yourself, rename `charts/go-echo-starter/` to `charts/myapi/` and update:
+If you're shipping the chart yourself, rename `charts/go-cli-starter/` to `charts/myapi/` and update:
 
 - `Chart.yaml` — `name: myapi`, `description`, `sources`, `home`
-- `templates/_helpers.tpl` — every `go-echo-starter.<helper>` definition (the chart-name prefix on `name`, `fullname`, `chart`, `labels`, `selectorLabels`, `serviceAccountName`, `image`, `secretName`, `configmapName`, `validateSeccompProfile`)
-- Every template file's `{{ include "go-echo-starter.<helper>" . }}` calls
+- `templates/_helpers.tpl` — every `go-cli-starter.<helper>` definition (the chart-name prefix on `name`, `fullname`, `chart`, `labels`, `selectorLabels`, `serviceAccountName`, `image`, `secretName`, `configmapName`, `validateSeccompProfile`)
+- Every template file's `{{ include "go-cli-starter.<helper>" . }}` calls
 - `image.repository` in `values.yaml` (point at your registry/image path)
 - `Taskfile.yaml` — the `helm:lint` / `helm:template` / `helm:package` / `helm:sbom` / `helm:push:oci` chart paths and OCI registry path
 - `.releaserc.json` — chart `.tgz` asset paths under `@semantic-release/github`
@@ -498,7 +498,7 @@ If you're forking under a new owner, also update the module path in `go.mod`:
 module github.com/your-org/your-repo
 ```
 
-Then run `task vendor` to refresh imports across the codebase. Imports that reference `github.com/servercurio/go-echo-starter/internal/...` will need a find-and-replace.
+Then run `task vendor` to refresh imports across the codebase. Imports that reference `github.com/servercurio/go-cli-starter/internal/...` will need a find-and-replace.
 
 ### Verify
 
@@ -521,28 +521,28 @@ The image is built from a date-pinned `ubuntu:noble-*` tag (see `Dockerfile`) an
 The release pipeline publishes a multi-arch (linux/amd64, linux/arm64) image to GHCR via `task container:build:multiarch`; the published manifest digest is captured into `bin/container-image.digest` and used by the workflow's attestation steps. Pull the published image with:
 
 ```sh
-docker pull ghcr.io/servercurio/go-echo-starter:<version>
+docker pull ghcr.io/servercurio/go-cli-starter:<version>
 # or by digest, after gh attestation verify:
-docker pull ghcr.io/servercurio/go-echo-starter@<digest>
+docker pull ghcr.io/servercurio/go-cli-starter@<digest>
 ```
 
 ## Kubernetes deployment via Helm
 
-A production-ready Helm chart lives at [`charts/go-echo-starter/`](charts/go-echo-starter/README.md). It targets Kubernetes 1.27+ and ships with the standard scaffolding (Deployment, Service, ServiceAccount, Ingress, HPA, ConfigMap) plus opt-in observability and policy resources.
+A production-ready Helm chart lives at [`charts/go-cli-starter/`](charts/go-cli-starter/README.md). It targets Kubernetes 1.27+ and ships with the standard scaffolding (Deployment, Service, ServiceAccount, Ingress, HPA, ConfigMap) plus opt-in observability and policy resources.
 
 ### Install
 
 From the GHCR OCI registry (recommended):
 
 ```sh
-helm install my-app oci://ghcr.io/servercurio/charts/go-echo-starter --version <X.Y.Z>
+helm install my-app oci://ghcr.io/servercurio/charts/go-cli-starter --version <X.Y.Z>
 ```
 
 Or from a release `.tgz` asset:
 
 ```sh
-gh release download v<X.Y.Z> --repo servercurio/go-echo-starter --pattern 'go-echo-starter-*.tgz'
-helm install my-app ./go-echo-starter-<X.Y.Z>.tgz
+gh release download v<X.Y.Z> --repo servercurio/go-cli-starter --pattern 'go-cli-starter-*.tgz'
+helm install my-app ./go-cli-starter-<X.Y.Z>.tgz
 ```
 
 ### What the chart provides
@@ -562,18 +562,18 @@ helm install my-app ./go-echo-starter-<X.Y.Z>.tgz
 Every release ships GitHub-signed Sigstore attestations for both the OCI artifact and the `.tgz`:
 
 ```sh
-gh attestation verify oci://ghcr.io/servercurio/charts/go-echo-starter:<X.Y.Z> --owner servercurio
-gh attestation verify ./go-echo-starter-<X.Y.Z>.tgz --owner servercurio
+gh attestation verify oci://ghcr.io/servercurio/charts/go-cli-starter:<X.Y.Z> --owner servercurio
+gh attestation verify ./go-cli-starter-<X.Y.Z>.tgz --owner servercurio
 ```
 
 The chart `.tgz`'s SHA256 is also GPG-signed:
 
 ```sh
-gpg --verify go-echo-starter-<X.Y.Z>.tgz.sha256.asc go-echo-starter-<X.Y.Z>.tgz.sha256
-shasum -a 256 -c go-echo-starter-<X.Y.Z>.tgz.sha256
+gpg --verify go-cli-starter-<X.Y.Z>.tgz.sha256.asc go-cli-starter-<X.Y.Z>.tgz.sha256
+shasum -a 256 -c go-cli-starter-<X.Y.Z>.tgz.sha256
 ```
 
-See [`charts/go-echo-starter/README.md`](charts/go-echo-starter/README.md) for the full values reference and per-resource configuration details.
+See [`charts/go-cli-starter/README.md`](charts/go-cli-starter/README.md) for the full values reference and per-resource configuration details.
 
 ## Releases
 
@@ -582,7 +582,7 @@ Releases are produced by [semantic-release](https://github.com/semantic-release/
 1. Analyses commits since the last tag using the [conventional-commits](https://www.conventionalcommits.org) preset and decides the next semver version.
 2. Updates `internal/version/version.txt` to the new version and runs `task generate` to refresh `commit.txt`.
 3. Commits the version bump back to the release branch with a `chore(release): X.Y.Z [skip ci]` message. The commit is **GPG-signed** (DCO `Signed-off-by` is appended automatically by a per-clone `prepare-commit-msg` hook installed in CI).
-4. Runs `task build` (six platform binaries) → `task hash` + `task sign` (per-binary SHA256 files and GPG signatures of the hashes) → `task sbom` (Go module CycloneDX SBOM, JSON + XML, GPG-signed) → `task container:build:multiarch` (multi-arch buildx push to `ghcr.io/servercurio/go-echo-starter`) → `task container:sbom` + `task container:sbom:sign` (container CycloneDX SBOM, JSON + XML, GPG-signed) → `task helm:package` + `task helm:hash` + `task helm:sign` (chart `.tgz`, hash, signed hash) → `task helm:sbom` + `task helm:sbom:sign` (helm CycloneDX SBOM, JSON + XML, GPG-signed) → `task helm:push:oci` (push chart to `oci://ghcr.io/servercurio/charts`).
+4. Runs `task build` (six platform binaries) → `task hash` + `task sign` (per-binary SHA256 files and GPG signatures of the hashes) → `task sbom` (Go module CycloneDX SBOM, JSON + XML, GPG-signed) → `task container:build:multiarch` (multi-arch buildx push to `ghcr.io/servercurio/go-cli-starter`) → `task container:sbom` + `task container:sbom:sign` (container CycloneDX SBOM, JSON + XML, GPG-signed) → `task helm:package` + `task helm:hash` + `task helm:sign` (chart `.tgz`, hash, signed hash) → `task helm:sbom` + `task helm:sbom:sign` (helm CycloneDX SBOM, JSON + XML, GPG-signed) → `task helm:push:oci` (push chart to `oci://ghcr.io/servercurio/charts`).
 5. Tags the commit and creates a GitHub Release. Every file artifact is uploaded as a release asset; container image and helm OCI artifact live in GHCR.
 6. Issues GitHub-signed Sigstore attestations via `actions/attest-build-provenance` (covering every release file plus both OCI subjects) and `actions/attest-sbom` (binding each CycloneDX SBOM, JSON and XML, to its subjects). OCI attestations are pushed alongside the manifest in GHCR.
 
@@ -592,9 +592,9 @@ Releases are produced by [semantic-release](https://github.com/semantic-release/
 | -------------- | ---------------- | ----- |
 | **Binaries** | `appsvrd-{linux,darwin,windows}-{amd64,arm64}` (6 total) | No per-binary GPG signature — verify via the signed hash file |
 | **Hash files** | `<binary>.sha256` + `<binary>.sha256.asc` | `.asc` is the detached GPG signature of the hash file |
-| **Container image** | `ghcr.io/servercurio/go-echo-starter:<version>` and `:latest` | Multi-arch manifest list (linux/amd64 + linux/arm64); attestations pushed to GHCR |
-| **Helm chart** (file) | `go-echo-starter-<version>.tgz` + `.tgz.sha256` + `.tgz.sha256.asc` | Available as a GitHub release asset |
-| **Helm chart** (OCI) | `oci://ghcr.io/servercurio/charts/go-echo-starter:<version>` | `helm install` directly from the registry |
+| **Container image** | `ghcr.io/servercurio/go-cli-starter:<version>` and `:latest` | Multi-arch manifest list (linux/amd64 + linux/arm64); attestations pushed to GHCR |
+| **Helm chart** (file) | `go-cli-starter-<version>.tgz` + `.tgz.sha256` + `.tgz.sha256.asc` | Available as a GitHub release asset |
+| **Helm chart** (OCI) | `oci://ghcr.io/servercurio/charts/go-cli-starter:<version>` | `helm install` directly from the registry |
 | **Go SBOM** | `sbom.json` + `sbom.xml` + `.asc` companions | CycloneDX, generated by `cyclonedx-gomod` |
 | **Container SBOM** | `container-sbom.json` + `container-sbom.xml` + `.asc` companions | CycloneDX, generated by `syft` against the published image |
 | **Helm chart SBOM** | `helm-sbom.json` + `helm-sbom.xml` + `.asc` companions | CycloneDX, generated by `syft` against the packaged `.tgz` |
@@ -615,13 +615,13 @@ gh attestation verify appsvrd-linux-amd64.sha256 --owner servercurio
 gh attestation verify sbom.json --owner servercurio
 
 # Helm chart (file)
-gh attestation verify go-echo-starter-<X.Y.Z>.tgz --owner servercurio
+gh attestation verify go-cli-starter-<X.Y.Z>.tgz --owner servercurio
 
 # Container image (provenance + container SBOM, fetched from GHCR)
-gh attestation verify oci://ghcr.io/servercurio/go-echo-starter:<X.Y.Z> --owner servercurio
+gh attestation verify oci://ghcr.io/servercurio/go-cli-starter:<X.Y.Z> --owner servercurio
 
 # Helm OCI artifact (provenance + helm SBOM, fetched from GHCR)
-gh attestation verify oci://ghcr.io/servercurio/charts/go-echo-starter:<X.Y.Z> --owner servercurio
+gh attestation verify oci://ghcr.io/servercurio/charts/go-cli-starter:<X.Y.Z> --owner servercurio
 ```
 
 For offline-capable verification, use the GPG-signed hash files. Note that **binaries themselves are no longer GPG-signed** — only the `.sha256` files are. The signed hash transitively pins the binary, so:

@@ -3,9 +3,9 @@ package application
 import (
 	"errors"
 
-	"github.com/servercurio/go-echo-starter/internal/database"
-	"github.com/servercurio/go-echo-starter/internal/env"
-	"github.com/servercurio/go-echo-starter/internal/logging"
+	"github.com/servercurio/go-cli-starter/internal/database"
+	"github.com/servercurio/go-cli-starter/internal/env"
+	"github.com/servercurio/go-cli-starter/internal/logging"
 )
 
 // Config is the daemon's top-level configuration aggregate. Each field is

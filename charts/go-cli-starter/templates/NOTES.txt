@@ -1,4 +1,4 @@
-go-echo-starter {{ .Chart.AppVersion }} has been installed as release {{ .Release.Name }} in namespace {{ .Release.Namespace }}.
+go-cli-starter {{ .Chart.AppVersion }} has been installed as release {{ .Release.Name }} in namespace {{ .Release.Namespace }}.
 
 1. Reach the daemon:
 {{- if .Values.ingress.enabled }}
@@ -11,14 +11,14 @@ go-echo-starter {{ .Chart.AppVersion }} has been installed as release {{ .Releas
    Configured via Gateway API HTTPRoute on parent {{ (first .Values.httpRoute.parentRefs).name }}.
    Hostnames: {{ join ", " .Values.httpRoute.hostnames }}
 {{- else if eq .Values.service.type "NodePort" }}
-   export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "go-echo-starter.fullname" . }})
+   export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "go-cli-starter.fullname" . }})
    export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
    curl http://$NODE_IP:$NODE_PORT/api/v1/livez
 {{- else if eq .Values.service.type "LoadBalancer" }}
    NOTE: It may take a few minutes for the LoadBalancer IP to be available.
-   kubectl get svc --namespace {{ .Release.Namespace }} -w {{ include "go-echo-starter.fullname" . }}
+   kubectl get svc --namespace {{ .Release.Namespace }} -w {{ include "go-cli-starter.fullname" . }}
 {{- else }}
-   kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "go-echo-starter.fullname" . }} 8080:{{ .Values.service.port }}
+   kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "go-cli-starter.fullname" . }} 8080:{{ .Values.service.port }}
    curl http://127.0.0.1:8080/api/v1/livez
 {{- end }}
 

@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/rs/zerolog"
-	"github.com/servercurio/go-echo-starter/internal/env"
-	"github.com/servercurio/go-echo-starter/internal/logging"
+	"github.com/servercurio/go-cli-starter/internal/env"
+	"github.com/servercurio/go-cli-starter/internal/logging"
 )
 
 // ProxyConfig captures the IP-extraction policy the daemon applies when

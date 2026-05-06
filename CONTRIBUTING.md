@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in `go-echo-starter`. The repository is a starter template, so contributions are oriented toward keeping the scaffold clean, generic, and reusable rather than expanding feature scope.
+Thanks for your interest in `go-cli-starter`. The repository is a starter template, so contributions are oriented toward keeping the scaffold clean, generic, and reusable rather than expanding feature scope.
 
 ## Before you start
 
@@ -10,8 +10,8 @@ Thanks for your interest in `go-echo-starter`. The repository is a starter templ
 ## Local setup
 
 ```sh
-git clone https://github.com/servercurio/go-echo-starter.git
-cd go-echo-starter
+git clone https://github.com/servercurio/go-cli-starter.git
+cd go-cli-starter
 task vendor
 task
 ```

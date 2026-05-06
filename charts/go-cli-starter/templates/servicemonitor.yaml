@@ -3,19 +3,19 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ include "go-echo-starter.fullname" . }}
+  name: {{ include "go-cli-starter.fullname" . }}
   {{- with .Values.metrics.serviceMonitor.namespace }}
   namespace: {{ . }}
   {{- end }}
   labels:
-    {{- include "go-echo-starter.labels" . | nindent 4 }}
+    {{- include "go-cli-starter.labels" . | nindent 4 }}
     {{- with .Values.metrics.serviceMonitor.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
   selector:
     matchLabels:
-      {{- include "go-echo-starter.selectorLabels" . | nindent 6 }}
+      {{- include "go-cli-starter.selectorLabels" . | nindent 6 }}
   namespaceSelector:
     matchNames:
       - {{ .Release.Namespace }}

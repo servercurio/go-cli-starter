@@ -10,10 +10,10 @@ import (
 	"github.com/joomcode/errorx"
 	"github.com/labstack/echo/v5"
 	mw "github.com/labstack/echo/v5/middleware"
-	"github.com/servercurio/go-echo-starter/internal/config"
-	"github.com/servercurio/go-echo-starter/internal/health"
-	"github.com/servercurio/go-echo-starter/internal/logging"
-	"github.com/servercurio/go-echo-starter/internal/router"
+	"github.com/servercurio/go-cli-starter/internal/config"
+	"github.com/servercurio/go-cli-starter/internal/health"
+	"github.com/servercurio/go-cli-starter/internal/logging"
+	"github.com/servercurio/go-cli-starter/internal/router"
 )
 
 // Default daemon identity strings. Embedded into Application by

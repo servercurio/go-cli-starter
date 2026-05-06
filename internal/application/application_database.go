@@ -3,10 +3,10 @@ package application
 import (
 	"context"
 
-	"github.com/servercurio/go-echo-starter/internal/database"
-	"github.com/servercurio/go-echo-starter/internal/database/orm"
-	apperrors "github.com/servercurio/go-echo-starter/internal/errors"
-	"github.com/servercurio/go-echo-starter/internal/logging"
+	"github.com/servercurio/go-cli-starter/internal/database"
+	"github.com/servercurio/go-cli-starter/internal/database/orm"
+	apperrors "github.com/servercurio/go-cli-starter/internal/errors"
+	"github.com/servercurio/go-cli-starter/internal/logging"
 )
 
 // IsDatabaseHealthy reports whether the configured database is currently

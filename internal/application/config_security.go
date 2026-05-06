@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog"
-	"github.com/servercurio/go-echo-starter/internal/env"
+	"github.com/servercurio/go-cli-starter/internal/env"
 )
 
 // SecurityConfig captures the response-header policy applied by the

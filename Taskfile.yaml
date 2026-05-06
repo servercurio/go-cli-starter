@@ -282,7 +282,7 @@ tasks:
     internal: true
     desc: "Print the canonical container image registry/repository path"
     cmds:
-      - cmd: printf 'ghcr.io/servercurio/go-echo-starter'
+      - cmd: printf 'ghcr.io/servercurio/go-cli-starter'
         silent: true
 
   container:build:multiarch:
@@ -305,7 +305,7 @@ tasks:
             echo "internal/version/version.txt is empty — refusing to push an unversioned image" >&2
             exit 1
           fi
-          REPO="ghcr.io/servercurio/go-echo-starter"
+          REPO="ghcr.io/servercurio/go-cli-starter"
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
             --provenance=true \
@@ -329,7 +329,7 @@ tasks:
             exit 1
           fi
           VERSION="$(cat internal/version/version.txt | tr -d '[:space:]')"
-          REPO="ghcr.io/servercurio/go-echo-starter"
+          REPO="ghcr.io/servercurio/go-cli-starter"
           syft "${REPO}:${VERSION}" -o cyclonedx-json=bin/container-sbom.json -o cyclonedx-xml=bin/container-sbom.xml
         silent: true
 
@@ -345,19 +345,19 @@ tasks:
         silent: true
 
   # ---------------------------------------------------------------------------
-  # Helm chart targets. The chart lives at charts/go-echo-starter/.
+  # Helm chart targets. The chart lives at charts/go-cli-starter/.
   # `task helm:package` and below read the version from internal/version/version.txt
   # so semantic-release's prepareCmd is the single source of truth at release time.
   # ---------------------------------------------------------------------------
 
   helm:lint:
-    desc: "Run `helm lint` against charts/go-echo-starter"
+    desc: "Run `helm lint` against charts/go-cli-starter"
     cmds:
-      - cmd: helm lint charts/go-echo-starter
+      - cmd: helm lint charts/go-cli-starter
         silent: true
 
   helm:template:
-    desc: "Render charts/go-echo-starter with the full-values fixture, monitoring CRDs, and TLS overlaid — catches render errors across every gated resource"
+    desc: "Render charts/go-cli-starter with the full-values fixture, monitoring CRDs, and TLS overlaid — catches render errors across every gated resource"
     cmds:
       - cmd: |
           set -e
@@ -365,9 +365,9 @@ tasks:
           # use it on a bare kind cluster. Overlay the TLS path here for render
           # validation; the existingSecret name does not need to exist for
           # `helm template`.
-          helm template release-name charts/go-echo-starter \
+          helm template release-name charts/go-cli-starter \
             --debug \
-            --values charts/go-echo-starter/ci/full-values.yaml \
+            --values charts/go-cli-starter/ci/full-values.yaml \
             --set tls.enabled=true \
             --set tls.existingSecret=overlay-ci-tls \
             --api-versions=monitoring.coreos.com/v1 \
@@ -376,7 +376,7 @@ tasks:
         silent: true
 
   helm:package:
-    desc: "Package charts/go-echo-starter into bin/go-echo-starter-<VERSION>.tgz. Reads VERSION from internal/version/version.txt."
+    desc: "Package charts/go-cli-starter into bin/go-cli-starter-<VERSION>.tgz. Reads VERSION from internal/version/version.txt."
     cmds:
       - cmd: |
           set -e
@@ -386,32 +386,32 @@ tasks:
             echo "internal/version/version.txt is empty — refusing to package an unversioned chart" >&2
             exit 1
           fi
-          helm package charts/go-echo-starter \
+          helm package charts/go-cli-starter \
             --version "$VERSION" \
             --app-version "$VERSION" \
             --destination bin/
         silent: true
 
   helm:hash:
-    desc: "Generate SHA-256 hash for the packaged helm chart (writes bin/go-echo-starter-<VERSION>.tgz.sha256)"
+    desc: "Generate SHA-256 hash for the packaged helm chart (writes bin/go-cli-starter-<VERSION>.tgz.sha256)"
     cmds:
       - cmd: |
           set -e
           VERSION="$(cat internal/version/version.txt | tr -d '[:space:]')"
-          TGZ="bin/go-echo-starter-${VERSION}.tgz"
+          TGZ="bin/go-cli-starter-${VERSION}.tgz"
           [ -f "$TGZ" ] || { echo "$TGZ missing — run 'task helm:package' first" >&2; exit 1; }
-          ( cd bin && shasum -a 256 "go-echo-starter-${VERSION}.tgz" > "go-echo-starter-${VERSION}.tgz.sha256" )
+          ( cd bin && shasum -a 256 "go-cli-starter-${VERSION}.tgz" > "go-cli-starter-${VERSION}.tgz.sha256" )
         silent: true
 
   helm:sign:
-    desc: "GPG-sign the helm chart hash file (writes bin/go-echo-starter-<VERSION>.tgz.sha256.asc). The chart .tgz itself is NOT signed."
+    desc: "GPG-sign the helm chart hash file (writes bin/go-cli-starter-<VERSION>.tgz.sha256.asc). The chart .tgz itself is NOT signed."
     deps:
       - helm:hash
     cmds:
       - cmd: |
           set -e
           VERSION="$(cat internal/version/version.txt | tr -d '[:space:]')"
-          HASH="bin/go-echo-starter-${VERSION}.tgz.sha256"
+          HASH="bin/go-cli-starter-${VERSION}.tgz.sha256"
           gpg --batch --yes --detach-sign --armor --output "${HASH}.asc" "$HASH"
         silent: true
 
@@ -425,7 +425,7 @@ tasks:
             exit 1
           fi
           VERSION="$(cat internal/version/version.txt | tr -d '[:space:]')"
-          TGZ="bin/go-echo-starter-${VERSION}.tgz"
+          TGZ="bin/go-cli-starter-${VERSION}.tgz"
           [ -f "$TGZ" ] || { echo "$TGZ missing — run 'task helm:package' first" >&2; exit 1; }
           syft "$TGZ" -o cyclonedx-json=bin/helm-sbom.json -o cyclonedx-xml=bin/helm-sbom.xml
         silent: true
@@ -459,7 +459,7 @@ tasks:
       - cmd: |
           set -e
           VERSION="$(cat internal/version/version.txt | tr -d '[:space:]')"
-          TGZ="bin/go-echo-starter-${VERSION}.tgz"
+          TGZ="bin/go-cli-starter-${VERSION}.tgz"
           [ -f "$TGZ" ] || { echo "$TGZ missing — run 'task helm:package' first" >&2; exit 1; }
           # `helm push` writes the digest to stderr; capture and persist it.
           OUT="$(helm push "$TGZ" oci://ghcr.io/servercurio/charts 2>&1)"
@@ -470,6 +470,6 @@ tasks:
             exit 1
           fi
           printf '%s' "$DIGEST" > bin/helm-oci.digest
-          echo "helm chart: oci://ghcr.io/servercurio/charts/go-echo-starter:${VERSION}@${DIGEST}"
+          echo "helm chart: oci://ghcr.io/servercurio/charts/go-cli-starter:${VERSION}@${DIGEST}"
         silent: true
 

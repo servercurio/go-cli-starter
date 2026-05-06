@@ -11,11 +11,11 @@ import (
 	asrt "github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 
-	"github.com/servercurio/go-echo-starter/internal/api/std/endpoint"
-	"github.com/servercurio/go-echo-starter/internal/api/std/module"
-	"github.com/servercurio/go-echo-starter/internal/api/std/route"
-	"github.com/servercurio/go-echo-starter/internal/openapi"
-	"github.com/servercurio/go-echo-starter/internal/router"
+	"github.com/servercurio/go-cli-starter/internal/api/std/endpoint"
+	"github.com/servercurio/go-cli-starter/internal/api/std/module"
+	"github.com/servercurio/go-cli-starter/internal/api/std/route"
+	"github.com/servercurio/go-cli-starter/internal/openapi"
+	"github.com/servercurio/go-cli-starter/internal/router"
 )
 
 // fixtureModule builds an api → v1 → (livez, readyz, users/:id) tree so

@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/rs/zerolog"
-	"github.com/servercurio/go-echo-starter/internal/version"
+	"github.com/servercurio/go-cli-starter/internal/version"
 )
 
 // AsStdLogger wraps a zerolog.Logger so it can be passed to APIs that expect

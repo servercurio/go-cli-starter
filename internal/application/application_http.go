@@ -13,7 +13,7 @@ import (
 	mw "github.com/labstack/echo/v5/middleware"
 	"golang.org/x/net/netutil"
 
-	"github.com/servercurio/go-echo-starter/internal/logging"
+	"github.com/servercurio/go-cli-starter/internal/logging"
 )
 
 // configureHttpServer wires the global middleware, optional CORS, body-size

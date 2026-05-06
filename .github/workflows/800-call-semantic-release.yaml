@@ -275,9 +275,9 @@ jobs:
             bin/container-sbom.xml
             bin/container-sbom.json.asc
             bin/container-sbom.xml.asc
-            bin/go-echo-starter-${{ steps.semantic-release.outputs.version }}.tgz
-            bin/go-echo-starter-${{ steps.semantic-release.outputs.version }}.tgz.sha256
-            bin/go-echo-starter-${{ steps.semantic-release.outputs.version }}.tgz.sha256.asc
+            bin/go-cli-starter-${{ steps.semantic-release.outputs.version }}.tgz
+            bin/go-cli-starter-${{ steps.semantic-release.outputs.version }}.tgz.sha256
+            bin/go-cli-starter-${{ steps.semantic-release.outputs.version }}.tgz.sha256.asc
             bin/helm-sbom.json
             bin/helm-sbom.xml
             bin/helm-sbom.json.asc
@@ -297,7 +297,7 @@ jobs:
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
         uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2
         with:
-          subject-name: ghcr.io/servercurio/go-echo-starter
+          subject-name: ghcr.io/servercurio/go-cli-starter
           subject-digest: ${{ steps.read-digests.outputs.container_digest }}
           push-to-registry: true
 
@@ -305,7 +305,7 @@ jobs:
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
         uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2
         with:
-          subject-name: ghcr.io/servercurio/charts/go-echo-starter
+          subject-name: ghcr.io/servercurio/charts/go-cli-starter
           subject-digest: ${{ steps.read-digests.outputs.helm_digest }}
           push-to-registry: true
 
@@ -345,7 +345,7 @@ jobs:
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
         uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
         with:
-          subject-name: ghcr.io/servercurio/go-echo-starter
+          subject-name: ghcr.io/servercurio/go-cli-starter
           subject-digest: ${{ steps.read-digests.outputs.container_digest }}
           sbom-path: bin/container-sbom.json
           push-to-registry: true
@@ -354,7 +354,7 @@ jobs:
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
         uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
         with:
-          subject-name: ghcr.io/servercurio/go-echo-starter
+          subject-name: ghcr.io/servercurio/go-cli-starter
           subject-digest: ${{ steps.read-digests.outputs.container_digest }}
           sbom-path: bin/container-sbom.xml
           push-to-registry: true
@@ -363,21 +363,21 @@ jobs:
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
         uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
         with:
-          subject-path: bin/go-echo-starter-${{ steps.semantic-release.outputs.version }}.tgz
+          subject-path: bin/go-cli-starter-${{ steps.semantic-release.outputs.version }}.tgz
           sbom-path: bin/helm-sbom.json
 
       - name: Attest helm CycloneDX XML SBOM against helm chart .tgz
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
         uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
         with:
-          subject-path: bin/go-echo-starter-${{ steps.semantic-release.outputs.version }}.tgz
+          subject-path: bin/go-cli-starter-${{ steps.semantic-release.outputs.version }}.tgz
           sbom-path: bin/helm-sbom.xml
 
       - name: Attest helm CycloneDX JSON SBOM against helm OCI artifact
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
         uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
         with:
-          subject-name: ghcr.io/servercurio/charts/go-echo-starter
+          subject-name: ghcr.io/servercurio/charts/go-cli-starter
           subject-digest: ${{ steps.read-digests.outputs.helm_digest }}
           sbom-path: bin/helm-sbom.json
           push-to-registry: true
@@ -386,7 +386,7 @@ jobs:
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
         uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
         with:
-          subject-name: ghcr.io/servercurio/charts/go-echo-starter
+          subject-name: ghcr.io/servercurio/charts/go-cli-starter
           subject-digest: ${{ steps.read-digests.outputs.helm_digest }}
           sbom-path: bin/helm-sbom.xml
           push-to-registry: true

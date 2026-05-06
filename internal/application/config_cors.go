@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/rs/zerolog"
-	"github.com/servercurio/go-echo-starter/internal/env"
+	"github.com/servercurio/go-cli-starter/internal/env"
 )
 
 // CorsConfig captures the cross-origin policy applied to both the HTTP and

@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
-	"github.com/servercurio/go-echo-starter/internal/env"
-	"github.com/servercurio/go-echo-starter/internal/obfusicate"
+	"github.com/servercurio/go-cli-starter/internal/env"
+	"github.com/servercurio/go-cli-starter/internal/obfusicate"
 )
 
 // Config holds the database connection parameters and pool sizing.

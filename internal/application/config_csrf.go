@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/rs/zerolog"
-	"github.com/servercurio/go-echo-starter/internal/env"
+	"github.com/servercurio/go-cli-starter/internal/env"
 )
 
 // CsrfConfig captures the cross-site request forgery middleware policy.

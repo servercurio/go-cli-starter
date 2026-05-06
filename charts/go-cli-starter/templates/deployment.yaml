@@ -1,11 +1,11 @@
-{{- include "go-echo-starter.validateSeccompProfile" (dict "profile" .Values.podSecurityContext.seccompProfile "scope" "podSecurityContext") -}}
-{{- include "go-echo-starter.validateSeccompProfile" (dict "profile" .Values.securityContext.seccompProfile "scope" "securityContext") -}}
+{{- include "go-cli-starter.validateSeccompProfile" (dict "profile" .Values.podSecurityContext.seccompProfile "scope" "podSecurityContext") -}}
+{{- include "go-cli-starter.validateSeccompProfile" (dict "profile" .Values.securityContext.seccompProfile "scope" "securityContext") -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "go-echo-starter.fullname" . }}
+  name: {{ include "go-cli-starter.fullname" . }}
   labels:
-    {{- include "go-echo-starter.labels" . | nindent 4 }}
+    {{- include "go-cli-starter.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
@@ -16,7 +16,7 @@ spec:
   {{- end }}
   selector:
     matchLabels:
-      {{- include "go-echo-starter.selectorLabels" . | nindent 6 }}
+      {{- include "go-cli-starter.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       annotations:
@@ -28,7 +28,7 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
       labels:
-        {{- include "go-echo-starter.labels" . | nindent 8 }}
+        {{- include "go-cli-starter.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -37,7 +37,7 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "go-echo-starter.serviceAccountName" . }}
+      serviceAccountName: {{ include "go-cli-starter.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
       {{- with .Values.priorityClassName }}
@@ -56,7 +56,7 @@ spec:
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          image: {{ include "go-echo-starter.image" . | quote }}
+          image: {{ include "go-cli-starter.image" . | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
@@ -69,10 +69,10 @@ spec:
             {{- end }}
           envFrom:
             - configMapRef:
-                name: {{ include "go-echo-starter.configmapName" . }}
+                name: {{ include "go-cli-starter.configmapName" . }}
             {{- if .Values.secret.create }}
             - secretRef:
-                name: {{ include "go-echo-starter.secretName" . }}
+                name: {{ include "go-cli-starter.secretName" . }}
             {{- end }}
             {{- with .Values.envFrom }}
             {{- toYaml . | nindent 12 }}

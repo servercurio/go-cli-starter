@@ -5,10 +5,10 @@ import (
 
 	_ "github.com/joomcode/errorx"
 	_ "github.com/labstack/echo/v5"
-	"github.com/servercurio/go-echo-starter/internal/api"
-	"github.com/servercurio/go-echo-starter/internal/application"
-	"github.com/servercurio/go-echo-starter/internal/logging"
-	"github.com/servercurio/go-echo-starter/internal/router"
+	"github.com/servercurio/go-cli-starter/internal/api"
+	"github.com/servercurio/go-cli-starter/internal/application"
+	"github.com/servercurio/go-cli-starter/internal/logging"
+	"github.com/servercurio/go-cli-starter/internal/router"
 )
 
 func main() {

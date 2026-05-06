@@ -6,11 +6,11 @@
 
 This repository uses GitHub's [private vulnerability reporting](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability) to receive reports privately. To submit a report:
 
-1. Open <https://github.com/servercurio/go-echo-starter/security/advisories/new>.
+1. Open <https://github.com/servercurio/go-cli-starter/security/advisories/new>.
 2. Provide a clear description of the issue, the affected component, and a minimal reproduction (commit hash, configuration, sample request, etc.).
 3. Suggest an impact assessment if you are able (CVSS vector or plain-language severity).
 
-If you cannot use GitHub's reporting flow, email the maintainer at **nathan@theklickfamily.com** with the subject line `[SECURITY] go-echo-starter`. Encrypted mail is welcome; ask for a current public key in your initial (unencrypted) message.
+If you cannot use GitHub's reporting flow, email the maintainer at **nathan@theklickfamily.com** with the subject line `[SECURITY] go-cli-starter`. Encrypted mail is welcome; ask for a current public key in your initial (unencrypted) message.
 
 ## What to Expect
 

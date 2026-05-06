@@ -6,7 +6,7 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"github.com/servercurio/go-echo-starter/internal/env"
+	"github.com/servercurio/go-cli-starter/internal/env"
 )
 
 // RateLimitConfig captures the request-rate and concurrent-connection
