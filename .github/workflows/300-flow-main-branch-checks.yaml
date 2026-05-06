@@ -1,0 +1,67 @@
+# SPDX-License-Identifier: Apache-2.0
+
+name: "300: [FLOW] Main Branch Checks"
+on:
+  push:
+    branches:
+      - main
+
+defaults:
+  run:
+    shell: bash
+
+# Each commit landing on main must run to completion so its coverage upload
+# anchors the codecov baseline — no cancel-in-progress.
+concurrency:
+  group: main-checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  code-compiles:
+    name: "Code Compiles"
+    uses: ./.github/workflows/800-call-code-compiles.yaml
+    with:
+      custom-job-label: Standard
+
+  unit-tests:
+    name: "Unit Tests"
+    uses: ./.github/workflows/800-call-unit-test.yaml
+    needs:
+      - code-compiles
+    with:
+      custom-job-label: Standard
+    secrets:
+      codecov-token: ${{ secrets.CODECOV_TOKEN }}
+
+  vulnerability-check:
+    name: "Vulnerability Check"
+    uses: ./.github/workflows/800-call-vulncheck.yaml
+    needs:
+      - code-compiles
+    with:
+      custom-job-label: Standard
+
+  openapi-drift:
+    name: "OpenAPI Drift"
+    uses: ./.github/workflows/800-call-openapi-drift.yaml
+    needs:
+      - code-compiles
+    with:
+      custom-job-label: Standard
+
+  helm-lint:
+    name: "Helm Lint"
+    uses: ./.github/workflows/800-call-helm-lint.yaml
+    with:
+      custom-job-label: Standard
+
+  helm-install:
+    name: "Helm Install"
+    uses: ./.github/workflows/800-call-helm-install.yaml
+    needs:
+      - helm-lint
+    with:
+      custom-job-label: Standard

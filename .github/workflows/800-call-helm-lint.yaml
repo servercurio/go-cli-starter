@@ -1,0 +1,96 @@
+# SPDX-License-Identifier: Apache-2.0
+
+name: "800: [CALL] Helm Lint"
+on:
+  workflow_call:
+    inputs:
+      helm-version:
+        description: "Helm release version (https://github.com/helm/helm/releases):"
+        type: string
+        required: false
+        default: "v3.20.2"
+      chart-testing-version:
+        description: "chart-testing release version (https://github.com/helm/chart-testing/releases):"
+        type: string
+        required: false
+        default: "v3.13.0"
+      task-version:
+        description: "Task Version:"
+        type: string
+        required: false
+        default: "3.39.2"
+      custom-job-label:
+        description: "Custom Job Label:"
+        type: string
+        required: false
+        default: "Helm Lint"
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+jobs:
+  helm-lint:
+    name: "${{ inputs.custom-job-label || 'Helm Lint' }}"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@a5ad31d6a139d249332a2605b85202e8c0b78450 # v2.19.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Install Task
+        uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
+        with:
+          version: ${{ inputs.task-version }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Helm and chart-testing are downloaded directly from the upstream
+      # release tarballs rather than via wrapper actions. The repo's
+      # transitive-SHA-pinning policy rejects wrapper actions whose own
+      # action.yml references other actions by tag — `run:` shell installs
+      # avoid that surface entirely. See feedback_action_sha_pinning_transitive.
+      - name: Install Helm
+        env:
+          HELM_VERSION: ${{ inputs.helm-version }}
+        run: |
+          set -euo pipefail
+          # The .sha256sum file references the original tarball filename, so
+          # download with that name (don't rename) and run sha256sum -c from
+          # the same directory.
+          HELM_TARBALL="helm-${HELM_VERSION}-linux-amd64.tar.gz"
+          curl -fsSLo "/tmp/${HELM_TARBALL}" "https://get.helm.sh/${HELM_TARBALL}"
+          curl -fsSLo "/tmp/${HELM_TARBALL}.sha256sum" "https://get.helm.sh/${HELM_TARBALL}.sha256sum"
+          ( cd /tmp && sha256sum -c "${HELM_TARBALL}.sha256sum" )
+          tar -xzf "/tmp/${HELM_TARBALL}" -C /tmp
+          sudo mv /tmp/linux-amd64/helm /usr/local/bin/helm
+          helm version --short
+
+      - name: Install chart-testing (ct)
+        # SHA pin: helm/chart-testing-action@v2.8.0. Verify against
+        # https://github.com/helm/chart-testing-action/releases.
+        uses: helm/chart-testing-action@6ec842c01de15ebb84c8627d2744a0c2f2755c9f
+        with:
+          version: ${{ inputs.chart-testing-version }}
+
+      - name: helm lint
+        run: task helm:lint
+
+      - name: helm template (full-values + TLS overlay + monitoring API versions)
+        run: task helm:template
+
+      - name: ct lint
+        run: |
+          ct lint \
+            --target-branch main \
+            --chart-dirs charts \
+            --validate-maintainers=false \
+            --check-version-increment=false

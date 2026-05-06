@@ -1,0 +1,149 @@
+# Used by `ct install` and by `task helm:template` to exercise every gated resource path.
+# Every optional resource is enabled, so this fixture catches render regressions in
+# ServiceMonitor / PodMonitor / PodLogs / Ingress / HPA / NetworkPolicy / PDB / TLS.
+image:
+  repository: appsvr
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+podAnnotations:
+  example.com/owner: platform
+podLabels:
+  tier: api
+
+config:
+  APP_DAEMON_LOG_LEVEL: debug
+  APP_HTTP_ACCESS_LOG_ENABLED: "true"
+  APP_OPENAPI_ENABLED: "true"
+
+# Inline secret used purely so envFrom resolves cleanly during `helm template`.
+secret:
+  create: true
+  stringData:
+    APP_FAKE_TOKEN: "ci-only"
+
+env:
+  - name: APP_DAEMON_LOG_PRETTY_PRINT
+    value: "false"
+
+envFrom:
+  - configMapRef:
+      name: ci-extra-config
+      optional: true
+
+extraVolumes:
+  - name: cache
+    emptyDir: {}
+extraVolumeMounts:
+  - name: cache
+    mountPath: /var/cache/app
+
+# TLS is intentionally NOT enabled here so `ct install` succeeds on a bare kind
+# cluster without needing a pre-staged TLS Secret. The TLS render path is
+# exercised by `task helm:template`, which layers tls.enabled=true on top of
+# this fixture via --set.
+tls:
+  enabled: false
+
+service:
+  type: ClusterIP
+  port: 8080
+  httpsPort: 8443
+
+ingress:
+  enabled: true
+  className: ""
+  hosts:
+    - host: ci.example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+
+httpRoute:
+  enabled: false
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 75
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector: {}
+  egress:
+    - {}
+
+# The ServiceMonitor / PodMonitor / PodLogs templates self-skip when the cluster
+# lacks the required CRDs (Capabilities.APIVersions.Has). Enabling them here means
+# `helm template` (which reports all caps) renders them, validating the YAML.
+metrics:
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+    labels:
+      release: prometheus
+  podMonitor:
+    enabled: true
+    interval: 15s
+    labels:
+      release: prometheus
+
+logging:
+  podLogs:
+    enabled: true
+    labels:
+      release: alloy
+    pipelineStages:
+      - cri: {}
+
+# Stick with RuntimeDefault here so the test pod runs on PodSecurity-restricted
+# namespaces. Swap to Localhost only when a profile is staged on every node.
+podSecurityContext:
+  fsGroup: 10001
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  allowPrivilegeEscalation: false
+  privileged: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+  seccompProfile:
+    type: RuntimeDefault
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: go-echo-starter

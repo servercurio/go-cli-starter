@@ -1,0 +1,392 @@
+# SPDX-License-Identifier: Apache-2.0
+
+name: "800: [CALL] Semantic Release"
+on:
+  workflow_call:
+    inputs:
+      dry-run:
+        description: "Run semantic-release in dry-run mode"
+        type: boolean
+        required: false
+        default: false
+      node-version:
+        description: "Node.js Version:"
+        type: string
+        required: false
+        default: "22"
+      go-version:
+        description: "Go Version:"
+        type: string
+        required: false
+        default: "1.26.2"
+      task-version:
+        description: "Task Version:"
+        type: string
+        required: false
+        default: "3.39.2"
+      helm-version:
+        description: "Helm release version (required for helm:package and helm:push:oci):"
+        type: string
+        required: false
+        default: "v3.20.2"
+      syft-version:
+        description: "Syft release version (used for container/helm SBOM generation):"
+        type: string
+        required: false
+        default: "v1.18.1"
+    outputs:
+      version:
+        description: "Version produced by semantic-release (empty if no release)"
+        value: ${{ jobs.release.outputs.version }}
+      released:
+        description: "true if semantic-release produced a new version"
+        value: ${{ jobs.release.outputs.released }}
+    secrets:
+      release-token:
+        description: "GitHub token used for tagging, committing the version bump, and publishing the release. Use the default GITHUB_TOKEN for unprotected branches; use a PAT (e.g. GH_ACCESS_TOKEN) when branch protection requires bypass."
+        required: true
+      gpg-private-key:
+        description: "ASCII-armored GPG private key used to sign the release commit and the SHA256SUMS artifact"
+        required: true
+      gpg-passphrase:
+        description: "Passphrase for the GPG private key"
+        required: true
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: "Semantic Release"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      packages: write       # GHCR push for the multi-arch container image and the helm OCI artifact
+      id-token: write       # OIDC token for actions/attest-* (Sigstore Fulcio keyless signing)
+      attestations: write   # GitHub attestation API — write provenance/sbom predicates
+    outputs:
+      version: ${{ steps.semantic-release.outputs.version }}
+      released: ${{ steps.semantic-release.outputs.released }}
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@a5ad31d6a139d249332a2605b85202e8c0b78450 # v2.19.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+          token: ${{ secrets.release-token }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Install Task
+        uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
+        with:
+          version: ${{ inputs.task-version }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup GoLang
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version: ${{ inputs.go-version }}
+          check-latest: false
+
+      - name: Import GPG Key
+        id: import-gpg
+        uses: step-security/ghaction-import-gpg@c0b4a334b9b72bfaaebec86ef022a78a5b17f828 # v7.0.0
+        with:
+          gpg_private_key: ${{ secrets.gpg-private-key }}
+          passphrase: ${{ secrets.gpg-passphrase }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+          git_tag_gpgsign: false
+
+      - name: Install DCO Sign-off Hook
+        run: |
+          cat > .git/hooks/prepare-commit-msg <<'HOOK'
+          #!/bin/sh
+          # Auto-append DCO Signed-off-by line if not already present.
+          msg="$1"
+          if ! grep -q "^Signed-off-by:" "$msg"; then
+            name="${GIT_AUTHOR_NAME:-$(git config user.name)}"
+            email="${GIT_AUTHOR_EMAIL:-$(git config user.email)}"
+            printf "\nSigned-off-by: %s <%s>\n" "$name" "$email" >> "$msg"
+          fi
+          HOOK
+          chmod +x .git/hooks/prepare-commit-msg
+
+      # --------------------------------------------------------------------
+      # Multi-arch container & helm OCI publishing setup. The publishCmd in
+      # .releaserc.json calls `task container:build:multiarch` and
+      # `task helm:push:oci`, both of which assume the caller has already
+      # configured QEMU/buildx and logged into GHCR.
+      # --------------------------------------------------------------------
+
+      - name: Set up QEMU
+        # SHA pin: docker/setup-qemu-action@v3.6.0. Verify before merge against
+        # https://github.com/docker/setup-qemu-action/releases.
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392
+
+      - name: Set up Docker Buildx
+        # SHA pin: docker/setup-buildx-action@v3.10.0. Verify before merge.
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2
+
+      - name: Login to GHCR (docker)
+        # SHA pin: docker/login-action@v3.4.0. Verify before merge.
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.release-token }}
+
+      - name: Install Helm
+        env:
+          HELM_VERSION: ${{ inputs.helm-version }}
+        run: |
+          set -euo pipefail
+          HELM_TARBALL="helm-${HELM_VERSION}-linux-amd64.tar.gz"
+          curl -fsSLo "/tmp/${HELM_TARBALL}" "https://get.helm.sh/${HELM_TARBALL}"
+          curl -fsSLo "/tmp/${HELM_TARBALL}.sha256sum" "https://get.helm.sh/${HELM_TARBALL}.sha256sum"
+          ( cd /tmp && sha256sum -c "${HELM_TARBALL}.sha256sum" )
+          tar -xzf "/tmp/${HELM_TARBALL}" -C /tmp
+          sudo mv /tmp/linux-amd64/helm /usr/local/bin/helm
+          helm version --short
+
+      - name: Login to GHCR (helm OCI)
+        env:
+          GHCR_TOKEN: ${{ secrets.release-token }}
+        run: |
+          set -euo pipefail
+          printf '%s' "${GHCR_TOKEN}" | helm registry login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Install syft
+        env:
+          SYFT_VERSION: ${{ inputs.syft-version }}
+        run: |
+          set -euo pipefail
+          version_no_v="${SYFT_VERSION#v}"
+          curl -fsSLo /tmp/syft.tar.gz "https://github.com/anchore/syft/releases/download/${SYFT_VERSION}/syft_${version_no_v}_linux_amd64.tar.gz"
+          curl -fsSLo /tmp/syft_checksums.txt "https://github.com/anchore/syft/releases/download/${SYFT_VERSION}/syft_${version_no_v}_checksums.txt"
+          # Extract the expected sha256 for the linux_amd64 tarball and verify it.
+          expected_sha="$(grep "syft_${version_no_v}_linux_amd64.tar.gz" /tmp/syft_checksums.txt | awk '{print $1}')"
+          actual_sha="$(sha256sum /tmp/syft.tar.gz | awk '{print $1}')"
+          if [[ "${expected_sha}" != "${actual_sha}" ]]; then
+            echo "syft checksum mismatch: expected ${expected_sha}, got ${actual_sha}" >&2
+            exit 1
+          fi
+          tar -xzf /tmp/syft.tar.gz -C /tmp
+          sudo mv /tmp/syft /usr/local/bin/syft
+          syft version
+
+      - name: Install Semantic Release
+        # --ignore-scripts disables npm package lifecycle scripts
+        # (preinstall/install/postinstall) for both direct and transitive
+        # deps. Historically the main RCE vector when a transitive package
+        # gets compromised; semantic-release and its plugins don't need
+        # install scripts to function.
+        run: |
+          npm install -g --ignore-scripts \
+            semantic-release@24.2.4 \
+            @semantic-release/commit-analyzer@13.0.1 \
+            @semantic-release/release-notes-generator@14.0.3 \
+            @semantic-release/exec@7.1.0 \
+            @semantic-release/git@10.0.1 \
+            @semantic-release/github@11.0.1 \
+            conventional-changelog-conventionalcommits@8.0.0
+
+      - name: Run Semantic Release
+        id: semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.release-token }}
+          GIT_AUTHOR_NAME: ${{ steps.import-gpg.outputs.name }}
+          GIT_AUTHOR_EMAIL: ${{ steps.import-gpg.outputs.email }}
+          GIT_COMMITTER_NAME: ${{ steps.import-gpg.outputs.name }}
+          GIT_COMMITTER_EMAIL: ${{ steps.import-gpg.outputs.email }}
+        run: |
+          set -euo pipefail
+          FLAGS=""
+          if [[ "${{ inputs.dry-run }}" == "true" ]]; then
+            FLAGS="--dry-run"
+          fi
+          npx semantic-release ${FLAGS}
+          if [[ -s .release-version ]]; then
+            VERSION="$(cat .release-version | tr -d '[:space:]')"
+            echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+            echo "released=true" >> "${GITHUB_OUTPUT}"
+            echo "Semantic release produced version: ${VERSION}"
+          else
+            echo "version=" >> "${GITHUB_OUTPUT}"
+            echo "released=false" >> "${GITHUB_OUTPUT}"
+            echo "Semantic release did not produce a new version."
+          fi
+
+      # ------------------------------------------------------------------
+      # GitHub-signed Sigstore attestations. Every release artifact gets a
+      # provenance attestation; SBOMs additionally bind to their subjects via
+      # attest-sbom. Both predicates are stored in the GitHub attestation log
+      # and (for OCI subjects) pushed alongside the manifest in GHCR.
+      # ------------------------------------------------------------------
+
+      - name: Attest provenance for file artifacts
+        if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
+        # SHA pin: actions/attest-build-provenance@v2.4.0. Verify before merge.
+        uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2
+        with:
+          # Cover every file shipped as a GitHub release asset: binaries, hash
+          # files, GPG-signed hashes, the helm chart .tgz, the helm chart hash
+          # and its signature, and every SBOM (.json/.xml + .asc). Exclude
+          # *.digest (workflow scratch files, not released).
+          subject-path: |
+            bin/appsvrd-linux-amd64
+            bin/appsvrd-linux-amd64.sha256
+            bin/appsvrd-linux-amd64.sha256.asc
+            bin/appsvrd-linux-arm64
+            bin/appsvrd-linux-arm64.sha256
+            bin/appsvrd-linux-arm64.sha256.asc
+            bin/appsvrd-darwin-amd64
+            bin/appsvrd-darwin-amd64.sha256
+            bin/appsvrd-darwin-amd64.sha256.asc
+            bin/appsvrd-darwin-arm64
+            bin/appsvrd-darwin-arm64.sha256
+            bin/appsvrd-darwin-arm64.sha256.asc
+            bin/appsvrd-windows-amd64
+            bin/appsvrd-windows-amd64.sha256
+            bin/appsvrd-windows-amd64.sha256.asc
+            bin/appsvrd-windows-arm64
+            bin/appsvrd-windows-arm64.sha256
+            bin/appsvrd-windows-arm64.sha256.asc
+            bin/sbom.json
+            bin/sbom.xml
+            bin/sbom.json.asc
+            bin/sbom.xml.asc
+            bin/container-sbom.json
+            bin/container-sbom.xml
+            bin/container-sbom.json.asc
+            bin/container-sbom.xml.asc
+            bin/go-echo-starter-${{ steps.semantic-release.outputs.version }}.tgz
+            bin/go-echo-starter-${{ steps.semantic-release.outputs.version }}.tgz.sha256
+            bin/go-echo-starter-${{ steps.semantic-release.outputs.version }}.tgz.sha256.asc
+            bin/helm-sbom.json
+            bin/helm-sbom.xml
+            bin/helm-sbom.json.asc
+            bin/helm-sbom.xml.asc
+
+      - name: Read OCI digests
+        id: read-digests
+        if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
+        run: |
+          set -euo pipefail
+          [ -f bin/container-image.digest ] || { echo "bin/container-image.digest missing" >&2; exit 1; }
+          [ -f bin/helm-oci.digest ] || { echo "bin/helm-oci.digest missing" >&2; exit 1; }
+          echo "container_digest=$(cat bin/container-image.digest)" >> "${GITHUB_OUTPUT}"
+          echo "helm_digest=$(cat bin/helm-oci.digest)" >> "${GITHUB_OUTPUT}"
+
+      - name: Attest provenance for container image
+        if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
+        uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2
+        with:
+          subject-name: ghcr.io/servercurio/go-echo-starter
+          subject-digest: ${{ steps.read-digests.outputs.container_digest }}
+          push-to-registry: true
+
+      - name: Attest provenance for helm OCI artifact
+        if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
+        uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2
+        with:
+          subject-name: ghcr.io/servercurio/charts/go-echo-starter
+          subject-digest: ${{ steps.read-digests.outputs.helm_digest }}
+          push-to-registry: true
+
+      # actions/attest-sbom takes one sbom-path per call. The CycloneDX
+      # SBOMs are produced in both JSON and XML; emit a separate SBOM
+      # attestation for each format so consumers can verify whichever
+      # encoding their tooling consumes.
+
+      - name: Attest Go CycloneDX JSON SBOM against each binary
+        if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
+        # SHA pin: actions/attest-sbom@v2.4.0. Verify before merge.
+        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
+        with:
+          subject-path: |
+            bin/appsvrd-linux-amd64
+            bin/appsvrd-linux-arm64
+            bin/appsvrd-darwin-amd64
+            bin/appsvrd-darwin-arm64
+            bin/appsvrd-windows-amd64
+            bin/appsvrd-windows-arm64
+          sbom-path: bin/sbom.json
+
+      - name: Attest Go CycloneDX XML SBOM against each binary
+        if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
+        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
+        with:
+          subject-path: |
+            bin/appsvrd-linux-amd64
+            bin/appsvrd-linux-arm64
+            bin/appsvrd-darwin-amd64
+            bin/appsvrd-darwin-arm64
+            bin/appsvrd-windows-amd64
+            bin/appsvrd-windows-arm64
+          sbom-path: bin/sbom.xml
+
+      - name: Attest container CycloneDX JSON SBOM against container image
+        if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
+        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
+        with:
+          subject-name: ghcr.io/servercurio/go-echo-starter
+          subject-digest: ${{ steps.read-digests.outputs.container_digest }}
+          sbom-path: bin/container-sbom.json
+          push-to-registry: true
+
+      - name: Attest container CycloneDX XML SBOM against container image
+        if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
+        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
+        with:
+          subject-name: ghcr.io/servercurio/go-echo-starter
+          subject-digest: ${{ steps.read-digests.outputs.container_digest }}
+          sbom-path: bin/container-sbom.xml
+          push-to-registry: true
+
+      - name: Attest helm CycloneDX JSON SBOM against helm chart .tgz
+        if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
+        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
+        with:
+          subject-path: bin/go-echo-starter-${{ steps.semantic-release.outputs.version }}.tgz
+          sbom-path: bin/helm-sbom.json
+
+      - name: Attest helm CycloneDX XML SBOM against helm chart .tgz
+        if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
+        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
+        with:
+          subject-path: bin/go-echo-starter-${{ steps.semantic-release.outputs.version }}.tgz
+          sbom-path: bin/helm-sbom.xml
+
+      - name: Attest helm CycloneDX JSON SBOM against helm OCI artifact
+        if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
+        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
+        with:
+          subject-name: ghcr.io/servercurio/charts/go-echo-starter
+          subject-digest: ${{ steps.read-digests.outputs.helm_digest }}
+          sbom-path: bin/helm-sbom.json
+          push-to-registry: true
+
+      - name: Attest helm CycloneDX XML SBOM against helm OCI artifact
+        if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
+        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
+        with:
+          subject-name: ghcr.io/servercurio/charts/go-echo-starter
+          subject-digest: ${{ steps.read-digests.outputs.helm_digest }}
+          sbom-path: bin/helm-sbom.xml
+          push-to-registry: true

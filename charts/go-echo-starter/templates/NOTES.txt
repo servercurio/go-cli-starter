@@ -1,0 +1,55 @@
+go-echo-starter {{ .Chart.AppVersion }} has been installed as release {{ .Release.Name }} in namespace {{ .Release.Namespace }}.
+
+1. Reach the daemon:
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+  {{- range .paths }}
+   http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
+  {{- end }}
+{{- end }}
+{{- else if .Values.httpRoute.enabled }}
+   Configured via Gateway API HTTPRoute on parent {{ (first .Values.httpRoute.parentRefs).name }}.
+   Hostnames: {{ join ", " .Values.httpRoute.hostnames }}
+{{- else if eq .Values.service.type "NodePort" }}
+   export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "go-echo-starter.fullname" . }})
+   export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+   curl http://$NODE_IP:$NODE_PORT/api/v1/livez
+{{- else if eq .Values.service.type "LoadBalancer" }}
+   NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+   kubectl get svc --namespace {{ .Release.Namespace }} -w {{ include "go-echo-starter.fullname" . }}
+{{- else }}
+   kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "go-echo-starter.fullname" . }} 8080:{{ .Values.service.port }}
+   curl http://127.0.0.1:8080/api/v1/livez
+{{- end }}
+
+2. Health endpoints:
+   /api/v1/livez   — liveness (always 200 once the process is up)
+   /api/v1/readyz  — readiness (aggregates registered health checks; goes 503 during graceful shutdown)
+   /api/v1/healthz — alias of /api/v1/readyz
+
+3. Supplying configuration via Kubernetes Secrets:
+   The chart consumes user-supplied Secrets and ConfigMaps via the .Values.envFrom list. Reference any
+   pre-existing resource without the chart owning it:
+
+       envFrom:
+         - secretRef:
+             name: my-app-secrets       # APP_DATABASE_DSN, APP_OAUTH_*, etc.
+         - configMapRef:
+             name: my-app-config
+
+   For TLS, set tls.enabled=true and tls.existingSecret to the name of a Secret with tls.crt / tls.key.
+   The chart then mounts the cert at {{ .Values.tls.mountPath }} and points the daemon there via
+   APP_SERVER_HTTPS_CERTIFICATE / APP_SERVER_HTTPS_KEY.
+
+4. Seccomp profile:
+   The chart defaults to seccompProfile.type=RuntimeDefault at both pod and container scope. To use a
+   custom Localhost profile, set localhostProfile to a path under /var/lib/kubelet/seccomp/ that already
+   exists on every node — the chart cannot ship the profile JSON itself.
+
+5. Optional observability resources (default-off):
+   metrics.serviceMonitor.enabled — Prometheus Operator ServiceMonitor (monitoring.coreos.com/v1)
+   metrics.podMonitor.enabled     — Prometheus Operator PodMonitor    (monitoring.coreos.com/v1)
+   logging.podLogs.enabled        — Grafana Alloy PodLogs              (monitoring.grafana.com/v1alpha2)
+
+6. Run the bundled smoke test:
+   helm test {{ .Release.Name }} --namespace {{ .Release.Namespace }}

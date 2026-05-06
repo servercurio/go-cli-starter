@@ -1,0 +1,475 @@
+version: 3
+output: prefixed
+
+vars:
+  PROJECT_NAME: AppSvr
+  ARCH: [amd64, arm64]
+  OS: [linux, darwin, windows]
+  LDFLAGS: "-w -s"
+#  LDFLAGS: ""
+
+env:
+  CGO_ENABLED: 0
+  APP_DAEMON_LOG_LEVEL: trace
+  APP_DAEMON_LOG_INCLUDE_CALLER: false
+  APP_HTTP_ACCESS_LOG_ENABLED: true
+  APP_HTTP_ACCESS_LOG_LEVEL: info
+  APP_HTTP_ACCESS_LOG_PRETTY_PRINT: true
+  APP_SERVER_HTTPS_ENABLED: true
+  # Local dev binds to loopback so `task run:daemon` doesn't expose the
+  # listener on every interface. The compiled binary still defaults to "" /
+  # all-interfaces — this override only applies when running via Taskfile.
+  APP_SERVER_HTTP_BIND_ADDRESS: 127.0.0.1
+  APP_SERVER_HTTPS_BIND_ADDRESS: 127.0.0.1
+  APP_SERVER_HTTP_PORT: 8888
+  APP_SERVER_HTTPS_PORT: 4443
+  APP_SERVER_HTTPS_USE_ACME_ISSUER: false
+#  APP_SERVER_HTTPS_HOSTNAME: kubernetes.docker.internal
+
+tasks:
+  default:
+    desc: "Clean, lint, and build all Go programs"
+    cmds:
+      - task: clean
+      - task: vendor
+      - task: lint
+      - task: build
+
+  clean:
+    desc: "Remove all generated files"
+    cmds:
+      - task: clean:dist
+      - task: clean:bin
+      - task: clean:test
+
+  clean:dist:
+    desc: "Remove all distribution files"
+    internal: true
+    cmds:
+      - rm -rvf dist
+
+  clean:bin:
+    desc: "Remove all binary files"
+    internal: true
+    cmds:
+      - rm -rvf bin
+
+  clean:test:
+    desc: "Remove all test files"
+    internal: true
+    cmds:
+      - rm -vf cover.out
+
+  clean:cache:
+    desc: "Remove all Go build caches"
+    cmds:
+      - go clean -cache -testcache
+
+  lint:
+    desc: "Run linters on all Go files"
+    cmds:
+      - task: lint:format
+      - task: lint:vet
+      - task: lint:golangci
+
+  lint:format:
+    internal: true
+    desc: "Run go fmt on all Go files"
+    cmds:
+      - go fmt ./...
+
+  lint:vet:
+    internal: true
+    desc: "Run go vet on all Go files"
+    cmds:
+      - go vet -atomic -defers -assign -bools -buildtag -framepointer -lostcancel -loopclosure -nilfunc -shift -stdmethods -stringintconv -structtag ./...
+
+  lint:golangci:
+    internal: true
+    desc: "Run golangci-lint with the project's .golangci.yml"
+    cmds:
+      - go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.1
+      - "$(go env GOPATH)/bin/golangci-lint run --timeout=5m ./..."
+
+  vendor:
+    desc: "Update Go modules and vendor directory"
+    cmds:
+      - cmd: echo "Tidying up Go modules"
+        silent: true
+      - cmd: go mod tidy
+        silent: true
+      - cmd: echo "Updating vendor directory"
+        silent: true
+      - cmd: go mod vendor
+        silent: true
+
+  generate:
+    desc: "Run all go:generate directives (version metadata, etc.)"
+    cmds:
+      - cmd: go generate ./...
+        silent: true
+
+  openapi:gen:
+    desc: "Render the OpenAPI spec to docs/openapi.yaml (run after route changes)"
+    cmds:
+      - go run ./cmd/openapi-gen -out docs/openapi.yaml
+
+  openapi:check:
+    desc: "Verify docs/openapi.yaml matches the spec produced from current code"
+    cmds:
+      - go run ./cmd/openapi-gen -out /tmp/openapi.generated.yaml
+      - diff -u docs/openapi.yaml /tmp/openapi.generated.yaml
+
+  sbom:
+    desc: "Generate CycloneDX SBOMs (bin/sbom.json + bin/sbom.xml) for the daemon module and GPG-sign each output"
+    deps:
+      - vendor
+    cmds:
+      - cmd: |
+          set -e
+          mkdir -p bin
+          go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.7.0
+          "$(go env GOPATH)/bin/cyclonedx-gomod" app -json=true -licenses -output bin/sbom.json -main cmd/daemon
+          "$(go env GOPATH)/bin/cyclonedx-gomod" app -licenses -output bin/sbom.xml -main cmd/daemon
+          # SBOMs are themselves manifests; sign them directly so consumers can verify the
+          # dependency listing offline. Signing is best-effort locally — the workflow
+          # imports a GPG key before running this task.
+          if gpg --list-secret-keys --with-colons 2>/dev/null | grep -q '^sec'; then
+            gpg --batch --yes --detach-sign --armor --output bin/sbom.json.asc bin/sbom.json
+            gpg --batch --yes --detach-sign --armor --output bin/sbom.xml.asc bin/sbom.xml
+          else
+            echo "warning: no GPG signing key configured; skipping SBOM signature" >&2
+          fi
+        silent: true
+
+  hash:
+    desc: "Generate per-binary SHA-256 hashes (writes bin/<binary>.sha256 per binary)"
+    dir: bin
+    cmds:
+      - cmd: |
+          set -e
+          rm -f *.sha256
+          found=0
+          for f in {{.PROJECT_NAME | lower}}d-*; do
+            case "$f" in
+              *.sha256|*.asc) continue ;;
+            esac
+            [ -f "$f" ] || continue
+            shasum -a 256 "$f" > "${f}.sha256"
+            cat "${f}.sha256"
+            found=1
+          done
+          if [ "$found" -eq 0 ]; then
+            echo "no binaries matching '{{.PROJECT_NAME | lower}}d-*' found in bin/ — run 'task build' first" >&2
+            exit 1
+          fi
+        silent: true
+
+  sign:
+    desc: "GPG-sign each SHA256 hash file (writes bin/<binary>.sha256.asc per binary). Depends on task hash. Binaries themselves are NOT signed — the signed hash transitively pins the binary."
+    deps:
+      - hash
+    dir: bin
+    cmds:
+      - cmd: |
+          set -e
+          rm -f *.asc
+          found=0
+          for hash_file in {{.PROJECT_NAME | lower}}d-*.sha256; do
+            [ -f "$hash_file" ] || continue
+            gpg --batch --yes --detach-sign --armor --output "${hash_file}.asc" "$hash_file"
+            found=1
+          done
+          if [ "$found" -eq 0 ]; then
+            echo "no .sha256 files matching '{{.PROJECT_NAME | lower}}d-*.sha256' found in bin/ — run 'task hash' first" >&2
+            exit 1
+          fi
+        silent: true
+
+  build:
+    desc: "Build all Go programs"
+    cmds:
+      - task: build:daemon:all
+
+  build:daemon:all:
+    internal: true
+    desc: "Build the {{.PROJECT_NAME}} daemon"
+    cmds:
+      - task: build:daemon:all:os
+
+  build:daemon:all:os:
+    internal: true
+    desc: "Build the {{.PROJECT_NAME}} daemon for all configured operating systems"
+    cmds:
+      - for:
+          var: OS
+        task: build:daemon:all:arch
+        vars:
+          GOOS: "{{.ITEM}}"
+
+  build:daemon:all:arch:
+    internal: true
+    desc: "Build the {{.PROJECT_NAME}} daemon for all configured architectures"
+    cmds:
+      - for:
+          var: ARCH
+        task: build:daemon
+        vars:
+          GOOS: "{{.GOOS}}"
+          GOARCH: "{{.ITEM}}"
+
+  build:daemon:
+    internal: true
+    desc: "Build the {{.PROJECT_NAME}} daemon for Linux with architecture"
+    env:
+      GOOS: "{{coalesce .GOOS OS}}"
+      GOARCH: "{{coalesce .GOARCH ARCH}}"
+    cmds:
+      - cmd: echo "Building {{.PROJECT_NAME}} daemon for ${GOOS}/${GOARCH}"
+        silent: true
+      - task: generate
+      - cmd: go build -o bin/{{.PROJECT_NAME | lower}}d-${GOOS}-${GOARCH} -ldflags="{{.LDFLAGS}}" -trimpath ./cmd/daemon
+        silent: true
+      - cmd: chmod +x bin/{{.PROJECT_NAME | lower}}d-${GOOS}-${GOARCH}
+        silent: true
+
+  build:container:
+    desc: "Build the {{.PROJECT_NAME}} container"
+    deps:
+      - task: build:daemon
+        vars:
+          GOOS: linux
+    cmds:
+      - docker buildx build --load -t {{.PROJECT_NAME | lower}}:latest .
+
+  test:
+    desc: "Run all tests"
+    env:
+      CGO_ENABLED: 1
+    cmds:
+      - go test -parallel 4 -cover -coverprofile cover.out -race -v ./...
+
+  run:
+    desc: "Run the {{.PROJECT_NAME}} programs"
+    cmds:
+      - task: run:daemon
+
+  run:daemon:
+    desc: "Run the {{.PROJECT_NAME}} daemon"
+    env:
+      GOOS: "{{OS}}"
+      GOARCH: "{{ARCH}}"
+    cmds:
+      - task: vendor
+      - task: build:daemon
+      - cmd: echo "Running {{.PROJECT_NAME}} daemon for ${GOOS}/${GOARCH}"
+        silent: true
+      - cmd: ./bin/{{.PROJECT_NAME | lower}}d-${GOOS}-${GOARCH}
+        silent: true
+
+  run:container:
+    desc: "Run the {{.PROJECT_NAME}} container"
+    deps:
+      - build:container
+    cmds:
+      - docker run --rm -it {{.PROJECT_NAME | lower}}:latest
+
+  # ---------------------------------------------------------------------------
+  # Multi-arch container publishing. Used by the release workflow's publishCmd.
+  # ---------------------------------------------------------------------------
+
+  container:registry:
+    internal: true
+    desc: "Print the canonical container image registry/repository path"
+    cmds:
+      - cmd: printf 'ghcr.io/servercurio/go-echo-starter'
+        silent: true
+
+  container:build:multiarch:
+    desc: "Build and push a multi-arch (linux/amd64,linux/arm64) container image to GHCR. Reads VERSION from internal/version/version.txt; release workflow runs `docker login ghcr.io` first."
+    deps:
+      - task: build:daemon
+        vars:
+          GOOS: linux
+          GOARCH: amd64
+      - task: build:daemon
+        vars:
+          GOOS: linux
+          GOARCH: arm64
+    cmds:
+      - cmd: |
+          set -e
+          mkdir -p bin
+          VERSION="$(cat internal/version/version.txt | tr -d '[:space:]')"
+          if [ -z "$VERSION" ]; then
+            echo "internal/version/version.txt is empty — refusing to push an unversioned image" >&2
+            exit 1
+          fi
+          REPO="ghcr.io/servercurio/go-echo-starter"
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --provenance=true \
+            --sbom=false \
+            --push \
+            -t "${REPO}:${VERSION}" \
+            -t "${REPO}:latest" \
+            -f Dockerfile .
+          # Capture the manifest-list digest for downstream attestation steps.
+          docker buildx imagetools inspect "${REPO}:${VERSION}" --format '{{`{{ .Manifest.Digest }}`}}' > bin/container-image.digest
+          echo "container image: ${REPO}:${VERSION}@$(cat bin/container-image.digest)"
+        silent: true
+
+  container:sbom:
+    desc: "Generate CycloneDX SBOMs (bin/container-sbom.{json,xml}) for the published container image using syft"
+    cmds:
+      - cmd: |
+          set -e
+          if ! command -v syft >/dev/null 2>&1; then
+            echo "syft not found on PATH — install via release tarball (https://github.com/anchore/syft/releases) before running this task" >&2
+            exit 1
+          fi
+          VERSION="$(cat internal/version/version.txt | tr -d '[:space:]')"
+          REPO="ghcr.io/servercurio/go-echo-starter"
+          syft "${REPO}:${VERSION}" -o cyclonedx-json=bin/container-sbom.json -o cyclonedx-xml=bin/container-sbom.xml
+        silent: true
+
+  container:sbom:sign:
+    desc: "GPG-sign the container SBOM files (bin/container-sbom.{json,xml}.asc)"
+    cmds:
+      - cmd: |
+          set -e
+          for f in bin/container-sbom.json bin/container-sbom.xml; do
+            [ -f "$f" ] || { echo "$f missing — run 'task container:sbom' first" >&2; exit 1; }
+            gpg --batch --yes --detach-sign --armor --output "${f}.asc" "$f"
+          done
+        silent: true
+
+  # ---------------------------------------------------------------------------
+  # Helm chart targets. The chart lives at charts/go-echo-starter/.
+  # `task helm:package` and below read the version from internal/version/version.txt
+  # so semantic-release's prepareCmd is the single source of truth at release time.
+  # ---------------------------------------------------------------------------
+
+  helm:lint:
+    desc: "Run `helm lint` against charts/go-echo-starter"
+    cmds:
+      - cmd: helm lint charts/go-echo-starter
+        silent: true
+
+  helm:template:
+    desc: "Render charts/go-echo-starter with the full-values fixture, monitoring CRDs, and TLS overlaid — catches render errors across every gated resource"
+    cmds:
+      - cmd: |
+          set -e
+          # The full-values fixture leaves tls.enabled=false so ct install can
+          # use it on a bare kind cluster. Overlay the TLS path here for render
+          # validation; the existingSecret name does not need to exist for
+          # `helm template`.
+          helm template release-name charts/go-echo-starter \
+            --debug \
+            --values charts/go-echo-starter/ci/full-values.yaml \
+            --set tls.enabled=true \
+            --set tls.existingSecret=overlay-ci-tls \
+            --api-versions=monitoring.coreos.com/v1 \
+            --api-versions=monitoring.grafana.com/v1alpha2 \
+            > /dev/null
+        silent: true
+
+  helm:package:
+    desc: "Package charts/go-echo-starter into bin/go-echo-starter-<VERSION>.tgz. Reads VERSION from internal/version/version.txt."
+    cmds:
+      - cmd: |
+          set -e
+          mkdir -p bin
+          VERSION="$(cat internal/version/version.txt | tr -d '[:space:]')"
+          if [ -z "$VERSION" ]; then
+            echo "internal/version/version.txt is empty — refusing to package an unversioned chart" >&2
+            exit 1
+          fi
+          helm package charts/go-echo-starter \
+            --version "$VERSION" \
+            --app-version "$VERSION" \
+            --destination bin/
+        silent: true
+
+  helm:hash:
+    desc: "Generate SHA-256 hash for the packaged helm chart (writes bin/go-echo-starter-<VERSION>.tgz.sha256)"
+    cmds:
+      - cmd: |
+          set -e
+          VERSION="$(cat internal/version/version.txt | tr -d '[:space:]')"
+          TGZ="bin/go-echo-starter-${VERSION}.tgz"
+          [ -f "$TGZ" ] || { echo "$TGZ missing — run 'task helm:package' first" >&2; exit 1; }
+          ( cd bin && shasum -a 256 "go-echo-starter-${VERSION}.tgz" > "go-echo-starter-${VERSION}.tgz.sha256" )
+        silent: true
+
+  helm:sign:
+    desc: "GPG-sign the helm chart hash file (writes bin/go-echo-starter-<VERSION>.tgz.sha256.asc). The chart .tgz itself is NOT signed."
+    deps:
+      - helm:hash
+    cmds:
+      - cmd: |
+          set -e
+          VERSION="$(cat internal/version/version.txt | tr -d '[:space:]')"
+          HASH="bin/go-echo-starter-${VERSION}.tgz.sha256"
+          gpg --batch --yes --detach-sign --armor --output "${HASH}.asc" "$HASH"
+        silent: true
+
+  helm:sbom:
+    desc: "Generate CycloneDX SBOMs (bin/helm-sbom.{json,xml}) for the packaged chart using syft"
+    cmds:
+      - cmd: |
+          set -e
+          if ! command -v syft >/dev/null 2>&1; then
+            echo "syft not found on PATH — install via release tarball (https://github.com/anchore/syft/releases) before running this task" >&2
+            exit 1
+          fi
+          VERSION="$(cat internal/version/version.txt | tr -d '[:space:]')"
+          TGZ="bin/go-echo-starter-${VERSION}.tgz"
+          [ -f "$TGZ" ] || { echo "$TGZ missing — run 'task helm:package' first" >&2; exit 1; }
+          syft "$TGZ" -o cyclonedx-json=bin/helm-sbom.json -o cyclonedx-xml=bin/helm-sbom.xml
+        silent: true
+
+  helm:sbom:sign:
+    desc: "GPG-sign the helm SBOM files (bin/helm-sbom.{json,xml}.asc)"
+    cmds:
+      - cmd: |
+          set -e
+          for f in bin/helm-sbom.json bin/helm-sbom.xml; do
+            [ -f "$f" ] || { echo "$f missing — run 'task helm:sbom' first" >&2; exit 1; }
+            gpg --batch --yes --detach-sign --armor --output "${f}.asc" "$f"
+          done
+        silent: true
+
+  helm:test:
+    desc: "Run chart-testing (ct lint) against charts/. Requires `ct` on PATH."
+    cmds:
+      - cmd: |
+          set -e
+          if ! command -v ct >/dev/null 2>&1; then
+            echo "ct not found on PATH — install chart-testing (https://github.com/helm/chart-testing/releases) before running this task" >&2
+            exit 1
+          fi
+          ct lint --target-branch main --chart-dirs charts --validate-maintainers=false
+        silent: true
+
+  helm:push:oci:
+    desc: "Push the packaged helm chart to GHCR's OCI registry (oci://ghcr.io/servercurio/charts). Workflow runs `helm registry login` first."
+    cmds:
+      - cmd: |
+          set -e
+          VERSION="$(cat internal/version/version.txt | tr -d '[:space:]')"
+          TGZ="bin/go-echo-starter-${VERSION}.tgz"
+          [ -f "$TGZ" ] || { echo "$TGZ missing — run 'task helm:package' first" >&2; exit 1; }
+          # `helm push` writes the digest to stderr; capture and persist it.
+          OUT="$(helm push "$TGZ" oci://ghcr.io/servercurio/charts 2>&1)"
+          echo "$OUT"
+          DIGEST="$(printf '%s\n' "$OUT" | awk '/^Digest: /{print $2}')"
+          if [ -z "$DIGEST" ]; then
+            echo "could not parse Digest from helm push output" >&2
+            exit 1
+          fi
+          printf '%s' "$DIGEST" > bin/helm-oci.digest
+          echo "helm chart: oci://ghcr.io/servercurio/charts/go-echo-starter:${VERSION}@${DIGEST}"
+        silent: true
+

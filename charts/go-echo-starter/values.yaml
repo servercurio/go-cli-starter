@@ -1,0 +1,263 @@
+# Default values for go-echo-starter.
+# yaml-language-server: $schema=values.schema.json
+
+# -- Number of pod replicas. Ignored when autoscaling.enabled=true.
+replicaCount: 1
+
+image:
+  # -- Container image registry/repository.
+  repository: ghcr.io/servercurio/go-echo-starter
+  # -- Image pull policy. One of Always, IfNotPresent, Never.
+  pullPolicy: IfNotPresent
+  # -- Image tag. Defaults to .Chart.AppVersion when empty.
+  tag: ""
+
+# -- Pull secrets for private registries (list of {name: ...}).
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # -- Create a dedicated ServiceAccount for the workload.
+  create: true
+  # -- Mount the ServiceAccount API token into pods. Default off (the daemon does not call the K8s API).
+  automount: false
+  # -- Annotations applied to the ServiceAccount (e.g. workload identity).
+  annotations: {}
+  # -- Use this name instead of the generated one. Set when create=false to bind to an existing SA.
+  name: ""
+
+# -- Annotations applied to every pod.
+podAnnotations: {}
+# -- Labels applied to every pod (in addition to the standard selector labels).
+podLabels: {}
+
+# -- Pod-level securityContext. Defaults enforce non-root + RuntimeDefault seccomp.
+podSecurityContext:
+  fsGroup: 10001
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroupChangePolicy: OnRootMismatch
+  # seccompProfile.type must be one of: RuntimeDefault, Localhost, Unconfined.
+  # When type=Localhost, localhostProfile is required and must reference a file
+  # already present on each node at /var/lib/kubelet/seccomp/<localhostProfile>.
+  seccompProfile:
+    type: RuntimeDefault
+    # localhostProfile: profiles/audit.json
+
+# -- Container-level securityContext. Same seccomp validation rules as podSecurityContext.
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  allowPrivilegeEscalation: false
+  privileged: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+  seccompProfile:
+    type: RuntimeDefault
+    # localhostProfile: profiles/audit.json
+
+service:
+  # -- Service type. ClusterIP / NodePort / LoadBalancer.
+  type: ClusterIP
+  # -- HTTP service port.
+  port: 8080
+  # -- HTTPS service port. Rendered only when tls.enabled=true.
+  httpsPort: 8443
+  # -- Annotations applied to the Service.
+  annotations: {}
+
+# -- Standard Ingress (networking.k8s.io/v1).
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+
+# -- Gateway API HTTPRoute (gateway.networking.k8s.io/v1). Requires Gateway API CRDs and a controller.
+httpRoute:
+  enabled: false
+  annotations: {}
+  parentRefs:
+    - name: gateway
+      sectionName: http
+  hostnames:
+    - chart-example.local
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+
+# -- Resource requests/limits. Defaults sized for the starter binary; tune for downstream workloads.
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# -- Liveness probe. /api/v1/livez always returns 200 OK once the process is up.
+livenessProbe:
+  httpGet:
+    path: /api/v1/livez
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 2
+  failureThreshold: 3
+
+# -- Readiness probe. /api/v1/readyz aggregates registered health checks; goes 503 on shutdown.
+readinessProbe:
+  httpGet:
+    path: /api/v1/readyz
+    port: http
+  initialDelaySeconds: 2
+  periodSeconds: 5
+  timeoutSeconds: 2
+  failureThreshold: 3
+
+# -- Startup probe. Generous failure budget for slow-starting downstream apps.
+startupProbe:
+  httpGet:
+    path: /api/v1/livez
+    port: http
+  periodSeconds: 2
+  failureThreshold: 30
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: false
+  # Set exactly one of minAvailable / maxUnavailable.
+  minAvailable: 1
+  # maxUnavailable: 1
+
+networkPolicy:
+  enabled: false
+  # ingress[] / egress[] rules in the standard networking.k8s.io/v1 NetworkPolicy shape.
+  # Default policy below allows ingress from any pod in the same namespace and unrestricted egress.
+  ingress:
+    - from:
+        - podSelector: {}
+  egress:
+    - {}
+  policyTypes:
+    - Ingress
+    - Egress
+
+# -- Deployment update strategy.
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+
+# -- Slightly above the daemon's default 10s shutdown timeout so SIGTERM-driven graceful shutdown completes.
+terminationGracePeriodSeconds: 30
+
+# -- Inline env entries appended after envFrom-derived values. Each entry is the standard {name, value | valueFrom} shape.
+env: []
+
+# -- envFrom entries. Primary path for user-supplied Secrets/ConfigMaps. Each entry is a {configMapRef|secretRef: {name, optional}}.
+# Example:
+#   envFrom:
+#     - secretRef:
+#         name: my-app-secrets
+#     - configMapRef:
+#         name: my-app-config
+envFrom: []
+
+# -- Additional volumes appended to the pod spec.
+extraVolumes: []
+# -- Additional volume mounts appended to the daemon container.
+extraVolumeMounts: []
+
+# -- TLS configuration. When enabled, the chart mounts an existing Secret containing tls.crt and tls.key
+#    and points the daemon at it via APP_SERVER_HTTPS_CERTIFICATE / APP_SERVER_HTTPS_KEY.
+tls:
+  enabled: false
+  # Name of an existing Kubernetes TLS-type Secret with keys tls.crt and tls.key.
+  existingSecret: ""
+  mountPath: /etc/go-echo-starter/tls
+
+# -- Flat map of non-secret env vars. Keys are env var names exactly as the daemon expects (APP_DAEMON_LOG_LEVEL, etc.).
+#    Rendered into a ConfigMap and consumed via envFrom.
+config: {}
+  # APP_DAEMON_LOG_LEVEL: info
+  # APP_HTTP_ACCESS_LOG_ENABLED: "true"
+  # APP_OPENAPI_ENABLED: "true"
+
+# -- Chart-managed Secret. Default off — operators should normally supply Secrets out-of-band and reference them via envFrom.
+secret:
+  create: false
+  annotations: {}
+  data: {}        # base64-encoded values
+  stringData: {}  # plaintext values, K8s base64-encodes at apply
+
+# -- Observability resources. All default-off so the chart installs cleanly on clusters without the Prometheus Operator / Grafana Alloy CRDs.
+metrics:
+  serviceMonitor:
+    # Requires monitoring.coreos.com/v1 CRDs (Prometheus Operator).
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+    path: /metrics
+    port: http
+    scheme: http
+    namespace: ""
+    labels: {}
+    relabelings: []
+    metricRelabelings: []
+  podMonitor:
+    # Requires monitoring.coreos.com/v1 CRDs (Prometheus Operator).
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+    path: /metrics
+    port: http
+    scheme: http
+    namespace: ""
+    labels: {}
+    relabelings: []
+    metricRelabelings: []
+
+logging:
+  podLogs:
+    # Requires monitoring.grafana.com/v1alpha2 CRD (Grafana Alloy).
+    enabled: false
+    namespace: ""
+    labels: {}
+    relabelings: []
+    pipelineStages: []
+
+# -- Standard scheduling controls.
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []
+priorityClassName: ""
+runtimeClassName: ""
+
+# -- Test pod overrides for `helm test`. Inherits the chart's container securityContext so it runs on PodSecurity-restricted namespaces.
+tests:
+  enabled: true
+  image:
+    repository: busybox
+    tag: "1.37.0"
+    pullPolicy: IfNotPresent

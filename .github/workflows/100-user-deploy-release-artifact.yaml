@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: Apache-2.0
+
+name: "100: [USER] Deploy Release"
+on:
+  workflow_dispatch:
+    inputs:
+      dry-run-enabled:
+        description: "Perform dry run (no tag, no push, no GitHub release)"
+        type: boolean
+        required: false
+        default: false
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: "Release"
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    uses: ./.github/workflows/800-call-semantic-release.yaml
+    with:
+      dry-run: ${{ inputs.dry-run-enabled }}
+    secrets:
+      release-token: ${{ secrets.GITHUB_TOKEN }}
+      gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+      gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
