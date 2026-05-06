@@ -8,6 +8,13 @@ Guidance for Claude Code working in this repository. This file covers project in
 - [`.claude/conventions.md`](.claude/conventions.md) — coding conventions for this repo
 - [`.claude/git-hooks.md`](.claude/git-hooks.md) — required local git hooks (must be installed per clone)
 
+<!-- Auto-load the reference docs above so Claude has them in context from session start. -->
+@.claude/instructions.md
+@.claude/build-commands.md
+@.claude/module-structure.md
+@.claude/conventions.md
+@.claude/git-hooks.md
+
 ## What this project is
 
 A **starter template**, not an application. It provides HTTP server scaffolding (Echo v5, TLS, logging, config) and intentionally omits persistence, auth, validation, and business logic — those are decisions for downstream consumers.
