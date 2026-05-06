@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/servercurio/go-echo-starter/internal/env"
+	"github.com/servercurio/go-cli-starter/internal/env"
 	asrt "github.com/stretchr/testify/assert"
 )
 

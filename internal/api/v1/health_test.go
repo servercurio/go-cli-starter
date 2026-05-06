@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/labstack/echo/v5"
-	"github.com/servercurio/go-echo-starter/internal/health"
-	"github.com/servercurio/go-echo-starter/internal/router"
+	"github.com/servercurio/go-cli-starter/internal/health"
+	"github.com/servercurio/go-cli-starter/internal/router"
 	asrt "github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 )

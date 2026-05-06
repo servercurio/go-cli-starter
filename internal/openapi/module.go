@@ -4,10 +4,10 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v5"
-	"github.com/servercurio/go-echo-starter/internal/api/std/endpoint"
-	"github.com/servercurio/go-echo-starter/internal/api/std/module"
-	"github.com/servercurio/go-echo-starter/internal/api/std/route"
-	"github.com/servercurio/go-echo-starter/internal/router"
+	"github.com/servercurio/go-cli-starter/internal/api/std/endpoint"
+	"github.com/servercurio/go-cli-starter/internal/api/std/module"
+	"github.com/servercurio/go-cli-starter/internal/api/std/route"
+	"github.com/servercurio/go-cli-starter/internal/router"
 )
 
 // Content types and URL paths for the served OpenAPI spec. Extracted so the

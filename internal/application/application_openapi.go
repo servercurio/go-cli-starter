@@ -6,11 +6,11 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	apperrors "github.com/servercurio/go-echo-starter/internal/errors"
-	"github.com/servercurio/go-echo-starter/internal/logging"
-	"github.com/servercurio/go-echo-starter/internal/openapi"
-	"github.com/servercurio/go-echo-starter/internal/router"
-	"github.com/servercurio/go-echo-starter/internal/version"
+	apperrors "github.com/servercurio/go-cli-starter/internal/errors"
+	"github.com/servercurio/go-cli-starter/internal/logging"
+	"github.com/servercurio/go-cli-starter/internal/openapi"
+	"github.com/servercurio/go-cli-starter/internal/router"
+	"github.com/servercurio/go-cli-starter/internal/version"
 )
 
 // initializeOpenAPI builds the OpenAPI spec from every currently registered

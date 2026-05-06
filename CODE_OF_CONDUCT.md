@@ -14,7 +14,7 @@ This Code of Conduct applies within all project spaces — issues, pull requests
 Reports of unacceptable behavior may be sent to the project maintainer:
 
 - **Email:** nathan@theklickfamily.com
-- **Subject prefix:** `[CONDUCT] go-echo-starter`
+- **Subject prefix:** `[CONDUCT] go-cli-starter`
 
 All reports will be reviewed and investigated promptly and fairly. Reporters' identities will be kept confidential.
 

@@ -13,11 +13,11 @@
 - `task sbom` — Generates CycloneDX 1.5 SBOMs at `bin/sbom.json` and `bin/sbom.xml` via `cyclonedx-gomod`, then GPG-signs each output (`bin/sbom.{json,xml}.asc`). Listed in `.releaserc.json`'s GitHub assets and run by `publishCmd`, so each release ships both flavours plus their signatures.
 - `task run:daemon` — Builds for the current platform and runs the daemon locally.
 - `task build:container` / `task run:container` — Build / run the Docker image (local single-arch).
-- `task container:build:multiarch` — Multi-arch (linux/amd64,linux/arm64) buildx push to `ghcr.io/servercurio/go-echo-starter`. Reads version from `internal/version/version.txt`. Used by the release pipeline; expects the caller to have run `docker login ghcr.io` first.
+- `task container:build:multiarch` — Multi-arch (linux/amd64,linux/arm64) buildx push to `ghcr.io/servercurio/go-cli-starter`. Reads version from `internal/version/version.txt`. Used by the release pipeline; expects the caller to have run `docker login ghcr.io` first.
 - `task container:sbom` / `task container:sbom:sign` — Generate `bin/container-sbom.{json,xml}` for the published container image via `syft`, then GPG-sign each.
-- `task helm:lint` / `task helm:template` — Lint and render the chart under `charts/go-echo-starter/`. `helm:template` uses `ci/full-values.yaml` plus a TLS overlay and injects monitoring API versions so every gated resource (ServiceMonitor / PodMonitor / PodLogs / TLS) renders.
-- `task helm:package` — Packages the chart into `bin/go-echo-starter-<VERSION>.tgz`, reading `<VERSION>` from `internal/version/version.txt`.
-- `task helm:hash` / `task helm:sign` — Hash + GPG-sign the packaged chart (`bin/go-echo-starter-<VERSION>.tgz.sha256.asc`). Same hash-only signing policy as binaries.
+- `task helm:lint` / `task helm:template` — Lint and render the chart under `charts/go-cli-starter/`. `helm:template` uses `ci/full-values.yaml` plus a TLS overlay and injects monitoring API versions so every gated resource (ServiceMonitor / PodMonitor / PodLogs / TLS) renders.
+- `task helm:package` — Packages the chart into `bin/go-cli-starter-<VERSION>.tgz`, reading `<VERSION>` from `internal/version/version.txt`.
+- `task helm:hash` / `task helm:sign` — Hash + GPG-sign the packaged chart (`bin/go-cli-starter-<VERSION>.tgz.sha256.asc`). Same hash-only signing policy as binaries.
 - `task helm:sbom` / `task helm:sbom:sign` — Generate `bin/helm-sbom.{json,xml}` for the packaged chart via `syft`, then GPG-sign each.
 - `task helm:test` — Runs `chart-testing` (`ct`) lint against `charts/`. Requires `ct` on `$PATH` (CI installs it from the upstream release tarball).
 - `task helm:push:oci` — Pushes the packaged chart to `oci://ghcr.io/servercurio/charts`. Captures the OCI digest into `bin/helm-oci.digest` for downstream attestation steps.

@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	"github.com/labstack/echo/v5"
-	"github.com/servercurio/go-echo-starter/internal/logging"
-	"github.com/servercurio/go-echo-starter/internal/router"
+	"github.com/servercurio/go-cli-starter/internal/logging"
+	"github.com/servercurio/go-cli-starter/internal/router"
 )
 
 // Standard is the canonical router.Module implementation. Routes and

@@ -1,8 +1,8 @@
 package v1
 
 import (
-	"github.com/servercurio/go-echo-starter/internal/api/std/module"
-	"github.com/servercurio/go-echo-starter/internal/router"
+	"github.com/servercurio/go-cli-starter/internal/api/std/module"
+	"github.com/servercurio/go-cli-starter/internal/router"
 )
 
 // Module identity and URL prefix for the v1 API submodule. Constants live at

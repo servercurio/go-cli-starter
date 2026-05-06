@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "go-echo-starter.configmapName" . }}
+  name: {{ include "go-cli-starter.configmapName" . }}
   labels:
-    {{- include "go-echo-starter.labels" . | nindent 4 }}
+    {{- include "go-cli-starter.labels" . | nindent 4 }}
 data:
   {{- range $key, $value := .Values.config }}
   {{ $key }}: {{ $value | quote }}

@@ -1,20 +1,20 @@
-# go-echo-starter
+# go-cli-starter
 
-Helm chart for the [go-echo-starter](https://github.com/servercurio/go-echo-starter) HTTP daemon — Echo v5, structured logging, TLS, OpenAPI.
+Helm chart for the [go-cli-starter](https://github.com/servercurio/go-cli-starter) HTTP daemon — Echo v5, structured logging, TLS, OpenAPI.
 
 ## Install
 
 From the GHCR OCI registry (recommended):
 
 ```sh
-helm install my-app oci://ghcr.io/servercurio/charts/go-echo-starter --version <X.Y.Z>
+helm install my-app oci://ghcr.io/servercurio/charts/go-cli-starter --version <X.Y.Z>
 ```
 
 From a release `.tgz` asset:
 
 ```sh
-gh release download <vX.Y.Z> --repo servercurio/go-echo-starter --pattern 'go-echo-starter-*.tgz'
-helm install my-app ./go-echo-starter-<X.Y.Z>.tgz
+gh release download <vX.Y.Z> --repo servercurio/go-cli-starter --pattern 'go-cli-starter-*.tgz'
+helm install my-app ./go-cli-starter-<X.Y.Z>.tgz
 ```
 
 ## Verify supply-chain attestations
@@ -22,11 +22,11 @@ helm install my-app ./go-echo-starter-<X.Y.Z>.tgz
 Every chart artifact carries a GitHub-signed Sigstore attestation. Verify before installing:
 
 ```sh
-gh attestation verify oci://ghcr.io/servercurio/charts/go-echo-starter:<X.Y.Z> --owner servercurio
-gh attestation verify ./go-echo-starter-<X.Y.Z>.tgz --owner servercurio
+gh attestation verify oci://ghcr.io/servercurio/charts/go-cli-starter:<X.Y.Z> --owner servercurio
+gh attestation verify ./go-cli-starter-<X.Y.Z>.tgz --owner servercurio
 ```
 
-The chart `.tgz`'s SHA256 is GPG-signed: `gpg --verify go-echo-starter-<X.Y.Z>.tgz.sha256.asc go-echo-starter-<X.Y.Z>.tgz.sha256 && shasum -a 256 -c go-echo-starter-<X.Y.Z>.tgz.sha256`.
+The chart `.tgz`'s SHA256 is GPG-signed: `gpg --verify go-cli-starter-<X.Y.Z>.tgz.sha256.asc go-cli-starter-<X.Y.Z>.tgz.sha256 && shasum -a 256 -c go-cli-starter-<X.Y.Z>.tgz.sha256`.
 
 ## Configuration
 
@@ -82,7 +82,7 @@ The starter binary does not currently expose `/metrics`. Enable the monitor reso
 
 See [values.yaml](./values.yaml) for the full schema; key defaults:
 
-- `image.repository`: `ghcr.io/servercurio/go-echo-starter`
+- `image.repository`: `ghcr.io/servercurio/go-cli-starter`
 - `service.port`: `8080` (HTTP), `service.httpsPort`: `8443`
 - `replicaCount`: `1`
 - `terminationGracePeriodSeconds`: `30`

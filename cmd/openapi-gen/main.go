@@ -10,9 +10,9 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/servercurio/go-echo-starter/internal/api"
-	"github.com/servercurio/go-echo-starter/internal/openapi"
-	"github.com/servercurio/go-echo-starter/internal/router"
+	"github.com/servercurio/go-cli-starter/internal/api"
+	"github.com/servercurio/go-cli-starter/internal/openapi"
+	"github.com/servercurio/go-cli-starter/internal/router"
 )
 
 // Pinned values used to make the rendered spec deterministic regardless of

@@ -8,6 +8,13 @@ Guidance for Claude Code working in this repository. This file covers project in
 - [`.claude/conventions.md`](.claude/conventions.md) — coding conventions for this repo
 - [`.claude/git-hooks.md`](.claude/git-hooks.md) — required local git hooks (must be installed per clone)
 
+<!-- Auto-load the reference docs above so Claude has them in context from session start. -->
+@.claude/instructions.md
+@.claude/build-commands.md
+@.claude/module-structure.md
+@.claude/conventions.md
+@.claude/git-hooks.md
+
 ## What this project is
 
 A **starter template**, not an application. It provides HTTP server scaffolding (Echo v5, TLS, logging, config) and intentionally omits persistence, auth, validation, and business logic — those are decisions for downstream consumers.
@@ -33,7 +40,7 @@ A fresh clone won't have `vendor/` until `task vendor` (or any task that depends
 - **Richer OpenAPI metadata**: declare endpoint metadata via the builder options on `internal/api/std/endpoint` — `WithSummary`, `WithDescription`, `WithRequest(value)`, `WithResponse(code, value, "description")`. Pass a zero value of the request/response Go type (e.g. `WithResponse(200, health.Report{}, "OK")`); the reflection-based schema generator at `internal/openapi/schema.go` produces the JSON Schema and registers it under `components.schemas` with a `$ref` from the operation. Don't reach for comment annotations or external generators — the builder-options approach matches the rest of the project's idiom and keeps everything in one place.
 - **New schema-relevant Go construct**: extend `internal/openapi/schema.go` (`schemaFor` for new `reflect.Kind`s, `inlineStructSchema` for new struct-tag handling). Keep the inline-vs-$ref split: named struct types ⇒ `$ref`, primitives/slices/maps/anon structs ⇒ inline. Add a fixture-based test in `internal/openapi/schema_test.go` that pins the expected JSON Schema shape so future refactors can't silently change the contract.
 - **Release behaviour change**: edit `.releaserc.json` for semantic-release plugin config (commit-analyzer rules, release notes preset, exec hooks, branch channels, GitHub asset list). Cross-check that any new binary or other artifact added to `bin/` is also listed under `@semantic-release/github` `assets` so it ships with the release, AND that the `subject-path` glob in `.github/workflows/800-call-semantic-release.yaml`'s `Attest provenance for file artifacts` step includes it — every release artifact must carry a GitHub-signed Sigstore attestation. Add an `actions/attest-sbom` step too if the artifact has a corresponding SBOM.
-- **New Helm chart change**: edit files under `charts/go-echo-starter/templates/` (or add a new template). Run `task helm:lint` and `task helm:template` after every change — `helm:template` overlays TLS and the monitoring API versions so gated resources are validated. New optional resources (ServiceMonitor / PodMonitor / PodLogs etc.) MUST be gated by an `.enabled` value defaulting to `false` and (for CRD-dependent resources) wrapped in `{{- if .Capabilities.APIVersions.Has "<group>/<version>" -}}` so the chart installs cleanly on clusters without the CRD. CI's `Helm Lint` and `Helm Install` jobs (`800-call-helm-lint.yaml` / `800-call-helm-install.yaml`) fail the PR if the chart is invalid or fails to install on a kind cluster. New chart values that affect the rendered manifest must also be exercised by `charts/go-echo-starter/ci/full-values.yaml`.
+- **New Helm chart change**: edit files under `charts/go-cli-starter/templates/` (or add a new template). Run `task helm:lint` and `task helm:template` after every change — `helm:template` overlays TLS and the monitoring API versions so gated resources are validated. New optional resources (ServiceMonitor / PodMonitor / PodLogs etc.) MUST be gated by an `.enabled` value defaulting to `false` and (for CRD-dependent resources) wrapped in `{{- if .Capabilities.APIVersions.Has "<group>/<version>" -}}` so the chart installs cleanly on clusters without the CRD. CI's `Helm Lint` and `Helm Install` jobs (`800-call-helm-lint.yaml` / `800-call-helm-install.yaml`) fail the PR if the chart is invalid or fails to install on a kind cluster. New chart values that affect the rendered manifest must also be exercised by `charts/go-cli-starter/ci/full-values.yaml`.
 
 ## Supply-chain signing policy
 

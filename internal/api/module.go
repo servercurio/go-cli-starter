@@ -1,9 +1,9 @@
 package api
 
 import (
-	"github.com/servercurio/go-echo-starter/internal/api/std/module"
-	v1 "github.com/servercurio/go-echo-starter/internal/api/v1"
-	"github.com/servercurio/go-echo-starter/internal/router"
+	"github.com/servercurio/go-cli-starter/internal/api/std/module"
+	v1 "github.com/servercurio/go-cli-starter/internal/api/v1"
+	"github.com/servercurio/go-cli-starter/internal/router"
 )
 
 // Module identity and URL prefix for the umbrella api module. Kept as

@@ -8,9 +8,9 @@ import (
 	"github.com/labstack/echo/v5"
 	asrt "github.com/stretchr/testify/assert"
 
-	"github.com/servercurio/go-echo-starter/internal/api/std/endpoint"
-	"github.com/servercurio/go-echo-starter/internal/api/std/module"
-	"github.com/servercurio/go-echo-starter/internal/api/std/route"
+	"github.com/servercurio/go-cli-starter/internal/api/std/endpoint"
+	"github.com/servercurio/go-cli-starter/internal/api/std/module"
+	"github.com/servercurio/go-cli-starter/internal/api/std/route"
 )
 
 // TestStandard_PrefixNormalisation pins the contract Prefix() must satisfy.

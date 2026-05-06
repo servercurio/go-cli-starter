@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	ex "github.com/joomcode/errorx"
-	"github.com/servercurio/go-echo-starter/internal/errors"
-	"github.com/servercurio/go-echo-starter/internal/logging"
+	"github.com/servercurio/go-cli-starter/internal/errors"
+	"github.com/servercurio/go-cli-starter/internal/logging"
 	"gopkg.in/yaml.v3"
 )
 

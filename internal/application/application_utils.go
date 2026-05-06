@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/joomcode/errorx"
-	"github.com/servercurio/go-echo-starter/internal/logging"
+	"github.com/servercurio/go-cli-starter/internal/logging"
 )
 
 // resolveHomeDirectory looks up the current user's home directory and

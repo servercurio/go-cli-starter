@@ -1,6 +1,6 @@
 package router
 
-import "github.com/servercurio/go-echo-starter/internal/health"
+import "github.com/servercurio/go-cli-starter/internal/health"
 
 // Config carries cross-cutting dependencies that route/module constructors
 // need access to without coupling them to a concrete server implementation.

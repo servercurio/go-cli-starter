@@ -26,8 +26,8 @@ import (
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/net/netutil"
 
-	ce "github.com/servercurio/go-echo-starter/internal/errors"
-	"github.com/servercurio/go-echo-starter/internal/logging"
+	ce "github.com/servercurio/go-cli-starter/internal/errors"
+	"github.com/servercurio/go-cli-starter/internal/logging"
 )
 
 // InMemoryCertificate holds a PEM-encoded ECDSA keypair and certificate

@@ -11,8 +11,8 @@ import (
 	"github.com/joomcode/errorx"
 	"github.com/labstack/echo/v5"
 	mw "github.com/labstack/echo/v5/middleware"
-	"github.com/servercurio/go-echo-starter/internal/database"
-	"github.com/servercurio/go-echo-starter/internal/logging"
+	"github.com/servercurio/go-cli-starter/internal/database"
+	"github.com/servercurio/go-cli-starter/internal/logging"
 )
 
 // defaultInsecurePaths lists URI substrings that bypass the

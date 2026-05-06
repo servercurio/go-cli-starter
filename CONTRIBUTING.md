@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in `go-echo-starter`. The repository is a starter template, so contributions are oriented toward keeping the scaffold clean, generic, and reusable rather than expanding feature scope.
+Thanks for your interest in `go-cli-starter`. The repository is a starter template, so contributions are oriented toward keeping the scaffold clean, generic, and reusable rather than expanding feature scope.
 
 ## Before you start
 
@@ -10,8 +10,8 @@ Thanks for your interest in `go-echo-starter`. The repository is a starter templ
 ## Local setup
 
 ```sh
-git clone https://github.com/servercurio/go-echo-starter.git
-cd go-echo-starter
+git clone https://github.com/servercurio/go-cli-starter.git
+cd go-cli-starter
 task vendor
 task
 ```
@@ -28,6 +28,28 @@ ls -l .git/hooks/prepare-commit-msg
 ```
 
 If the hook is missing, copy the script from `.claude/git-hooks.md` and `chmod +x` it.
+
+## Required commit signing
+
+Every contributor commit must be **GPG-signed** in addition to carrying the DCO `Signed-off-by:` trailer above. The release workflow already produces signed `chore(release)` commits via an imported key (`.github/workflows/800-call-semantic-release.yaml`); contributor commits must match so the entire `main` history verifies.
+
+Configure once per clone (or globally):
+
+```sh
+git config commit.gpgsign true
+git config user.signingkey <YOUR-GPG-KEY-ID>
+# Optional: also sign annotated tags
+git config tag.gpgsign true
+```
+
+Verify a commit you just authored:
+
+```sh
+git log -1 --show-signature
+# Look for "Good signature from ..." and a "G" in `git log --pretty='%G?'`
+```
+
+Don't bypass either requirement with `--no-gpg-sign` or `--no-verify`. If `gpg` prompts you for a passphrase on every commit, configure `gpg-agent` rather than disabling signing.
 
 ## Commit-message conventions
 

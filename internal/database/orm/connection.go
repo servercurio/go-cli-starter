@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/joomcode/errorx"
-	"github.com/servercurio/go-echo-starter/internal/database"
+	"github.com/servercurio/go-cli-starter/internal/database"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 

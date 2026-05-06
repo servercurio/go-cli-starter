@@ -1,4 +1,4 @@
-module github.com/servercurio/go-echo-starter
+module github.com/servercurio/go-cli-starter
 
 go 1.26
 

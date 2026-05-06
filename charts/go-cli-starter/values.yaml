@@ -1,4 +1,4 @@
-# Default values for go-echo-starter.
+# Default values for go-cli-starter.
 # yaml-language-server: $schema=values.schema.json
 
 # -- Number of pod replicas. Ignored when autoscaling.enabled=true.
@@ -6,7 +6,7 @@ replicaCount: 1
 
 image:
   # -- Container image registry/repository.
-  repository: ghcr.io/servercurio/go-echo-starter
+  repository: ghcr.io/servercurio/go-cli-starter
   # -- Image pull policy. One of Always, IfNotPresent, Never.
   pullPolicy: IfNotPresent
   # -- Image tag. Defaults to .Chart.AppVersion when empty.
@@ -194,7 +194,7 @@ tls:
   enabled: false
   # Name of an existing Kubernetes TLS-type Secret with keys tls.crt and tls.key.
   existingSecret: ""
-  mountPath: /etc/go-echo-starter/tls
+  mountPath: /etc/go-cli-starter/tls
 
 # -- Flat map of non-secret env vars. Keys are env var names exactly as the daemon expects (APP_DAEMON_LOG_LEVEL, etc.).
 #    Rendered into a ConfigMap and consumed via envFrom.
