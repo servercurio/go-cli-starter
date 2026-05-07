@@ -38,14 +38,3 @@ func NotifyDaemonLoggingStartup(cfg *Config) {
 		EmbedObject(cfg.Daemon).
 		Msg("daemon logging")
 }
-
-// NotifyHttpLoggingStartup (re)initializes the logging system from cfg and
-// emits a structured event describing the resolved HTTP-access-logger
-// settings.
-func NotifyHttpLoggingStartup(cfg *Config) {
-	Initialize(cfg)
-
-	Daemon.Info().
-		EmbedObject(cfg.HttpAccess).
-		Msg("http access logging")
-}

@@ -24,13 +24,8 @@ on:
         type: string
         required: false
         default: "3.39.2"
-      helm-version:
-        description: "Helm release version (required for helm:package and helm:push:oci):"
-        type: string
-        required: false
-        default: "v3.20.2"
       syft-version:
-        description: "Syft release version (used for container/helm SBOM generation):"
+        description: "Syft release version (used for container SBOM generation):"
         type: string
         required: false
         default: "v1.18.1"
@@ -67,7 +62,7 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
-      packages: write       # GHCR push for the multi-arch container image and the helm OCI artifact
+      packages: write       # GHCR push for the multi-arch container image
       id-token: write       # OIDC token for actions/attest-* (Sigstore Fulcio keyless signing)
       attestations: write   # GitHub attestation API — write provenance/sbom predicates
     outputs:
@@ -128,10 +123,10 @@ jobs:
           chmod +x .git/hooks/prepare-commit-msg
 
       # --------------------------------------------------------------------
-      # Multi-arch container & helm OCI publishing setup. The publishCmd in
-      # .releaserc.json calls `task container:build:multiarch` and
-      # `task helm:push:oci`, both of which assume the caller has already
-      # configured QEMU/buildx and logged into GHCR.
+      # Multi-arch container publishing setup. The publishCmd in
+      # .releaserc.json calls `task container:build:multiarch`, which
+      # assumes the caller has already configured QEMU/buildx and logged
+      # into GHCR.
       # --------------------------------------------------------------------
 
       - name: Set up QEMU
@@ -150,26 +145,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.release-token }}
-
-      - name: Install Helm
-        env:
-          HELM_VERSION: ${{ inputs.helm-version }}
-        run: |
-          set -euo pipefail
-          HELM_TARBALL="helm-${HELM_VERSION}-linux-amd64.tar.gz"
-          curl -fsSLo "/tmp/${HELM_TARBALL}" "https://get.helm.sh/${HELM_TARBALL}"
-          curl -fsSLo "/tmp/${HELM_TARBALL}.sha256sum" "https://get.helm.sh/${HELM_TARBALL}.sha256sum"
-          ( cd /tmp && sha256sum -c "${HELM_TARBALL}.sha256sum" )
-          tar -xzf "/tmp/${HELM_TARBALL}" -C /tmp
-          sudo mv /tmp/linux-amd64/helm /usr/local/bin/helm
-          helm version --short
-
-      - name: Login to GHCR (helm OCI)
-        env:
-          GHCR_TOKEN: ${{ secrets.release-token }}
-        run: |
-          set -euo pipefail
-          printf '%s' "${GHCR_TOKEN}" | helm registry login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Install syft
         env:
@@ -245,28 +220,27 @@ jobs:
         uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2
         with:
           # Cover every file shipped as a GitHub release asset: binaries, hash
-          # files, GPG-signed hashes, the helm chart .tgz, the helm chart hash
-          # and its signature, and every SBOM (.json/.xml + .asc). Exclude
-          # *.digest (workflow scratch files, not released).
+          # files, GPG-signed hashes, and every SBOM (.json/.xml + .asc).
+          # Exclude *.digest (workflow scratch files, not released).
           subject-path: |
-            bin/appsvrd-linux-amd64
-            bin/appsvrd-linux-amd64.sha256
-            bin/appsvrd-linux-amd64.sha256.asc
-            bin/appsvrd-linux-arm64
-            bin/appsvrd-linux-arm64.sha256
-            bin/appsvrd-linux-arm64.sha256.asc
-            bin/appsvrd-darwin-amd64
-            bin/appsvrd-darwin-amd64.sha256
-            bin/appsvrd-darwin-amd64.sha256.asc
-            bin/appsvrd-darwin-arm64
-            bin/appsvrd-darwin-arm64.sha256
-            bin/appsvrd-darwin-arm64.sha256.asc
-            bin/appsvrd-windows-amd64
-            bin/appsvrd-windows-amd64.sha256
-            bin/appsvrd-windows-amd64.sha256.asc
-            bin/appsvrd-windows-arm64
-            bin/appsvrd-windows-arm64.sha256
-            bin/appsvrd-windows-arm64.sha256.asc
+            bin/appcli-linux-amd64
+            bin/appcli-linux-amd64.sha256
+            bin/appcli-linux-amd64.sha256.asc
+            bin/appcli-linux-arm64
+            bin/appcli-linux-arm64.sha256
+            bin/appcli-linux-arm64.sha256.asc
+            bin/appcli-darwin-amd64
+            bin/appcli-darwin-amd64.sha256
+            bin/appcli-darwin-amd64.sha256.asc
+            bin/appcli-darwin-arm64
+            bin/appcli-darwin-arm64.sha256
+            bin/appcli-darwin-arm64.sha256.asc
+            bin/appcli-windows-amd64
+            bin/appcli-windows-amd64.sha256
+            bin/appcli-windows-amd64.sha256.asc
+            bin/appcli-windows-arm64
+            bin/appcli-windows-arm64.sha256
+            bin/appcli-windows-arm64.sha256.asc
             bin/sbom.json
             bin/sbom.xml
             bin/sbom.json.asc
@@ -275,13 +249,6 @@ jobs:
             bin/container-sbom.xml
             bin/container-sbom.json.asc
             bin/container-sbom.xml.asc
-            bin/go-cli-starter-${{ steps.semantic-release.outputs.version }}.tgz
-            bin/go-cli-starter-${{ steps.semantic-release.outputs.version }}.tgz.sha256
-            bin/go-cli-starter-${{ steps.semantic-release.outputs.version }}.tgz.sha256.asc
-            bin/helm-sbom.json
-            bin/helm-sbom.xml
-            bin/helm-sbom.json.asc
-            bin/helm-sbom.xml.asc
 
       - name: Read OCI digests
         id: read-digests
@@ -289,9 +256,7 @@ jobs:
         run: |
           set -euo pipefail
           [ -f bin/container-image.digest ] || { echo "bin/container-image.digest missing" >&2; exit 1; }
-          [ -f bin/helm-oci.digest ] || { echo "bin/helm-oci.digest missing" >&2; exit 1; }
           echo "container_digest=$(cat bin/container-image.digest)" >> "${GITHUB_OUTPUT}"
-          echo "helm_digest=$(cat bin/helm-oci.digest)" >> "${GITHUB_OUTPUT}"
 
       - name: Attest provenance for container image
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
@@ -299,14 +264,6 @@ jobs:
         with:
           subject-name: ghcr.io/servercurio/go-cli-starter
           subject-digest: ${{ steps.read-digests.outputs.container_digest }}
-          push-to-registry: true
-
-      - name: Attest provenance for helm OCI artifact
-        if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
-        uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2
-        with:
-          subject-name: ghcr.io/servercurio/charts/go-cli-starter
-          subject-digest: ${{ steps.read-digests.outputs.helm_digest }}
           push-to-registry: true
 
       # actions/attest-sbom takes one sbom-path per call. The CycloneDX
@@ -320,12 +277,12 @@ jobs:
         uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
         with:
           subject-path: |
-            bin/appsvrd-linux-amd64
-            bin/appsvrd-linux-arm64
-            bin/appsvrd-darwin-amd64
-            bin/appsvrd-darwin-arm64
-            bin/appsvrd-windows-amd64
-            bin/appsvrd-windows-arm64
+            bin/appcli-linux-amd64
+            bin/appcli-linux-arm64
+            bin/appcli-darwin-amd64
+            bin/appcli-darwin-arm64
+            bin/appcli-windows-amd64
+            bin/appcli-windows-arm64
           sbom-path: bin/sbom.json
 
       - name: Attest Go CycloneDX XML SBOM against each binary
@@ -333,12 +290,12 @@ jobs:
         uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
         with:
           subject-path: |
-            bin/appsvrd-linux-amd64
-            bin/appsvrd-linux-arm64
-            bin/appsvrd-darwin-amd64
-            bin/appsvrd-darwin-arm64
-            bin/appsvrd-windows-amd64
-            bin/appsvrd-windows-arm64
+            bin/appcli-linux-amd64
+            bin/appcli-linux-arm64
+            bin/appcli-darwin-amd64
+            bin/appcli-darwin-arm64
+            bin/appcli-windows-amd64
+            bin/appcli-windows-arm64
           sbom-path: bin/sbom.xml
 
       - name: Attest container CycloneDX JSON SBOM against container image
@@ -357,36 +314,4 @@ jobs:
           subject-name: ghcr.io/servercurio/go-cli-starter
           subject-digest: ${{ steps.read-digests.outputs.container_digest }}
           sbom-path: bin/container-sbom.xml
-          push-to-registry: true
-
-      - name: Attest helm CycloneDX JSON SBOM against helm chart .tgz
-        if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
-        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
-        with:
-          subject-path: bin/go-cli-starter-${{ steps.semantic-release.outputs.version }}.tgz
-          sbom-path: bin/helm-sbom.json
-
-      - name: Attest helm CycloneDX XML SBOM against helm chart .tgz
-        if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
-        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
-        with:
-          subject-path: bin/go-cli-starter-${{ steps.semantic-release.outputs.version }}.tgz
-          sbom-path: bin/helm-sbom.xml
-
-      - name: Attest helm CycloneDX JSON SBOM against helm OCI artifact
-        if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
-        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
-        with:
-          subject-name: ghcr.io/servercurio/charts/go-cli-starter
-          subject-digest: ${{ steps.read-digests.outputs.helm_digest }}
-          sbom-path: bin/helm-sbom.json
-          push-to-registry: true
-
-      - name: Attest helm CycloneDX XML SBOM against helm OCI artifact
-        if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
-        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
-        with:
-          subject-name: ghcr.io/servercurio/charts/go-cli-starter
-          subject-digest: ${{ steps.read-digests.outputs.helm_digest }}
-          sbom-path: bin/helm-sbom.xml
           push-to-registry: true

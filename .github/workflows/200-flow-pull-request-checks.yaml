@@ -45,25 +45,3 @@ jobs:
       - code-compiles
     with:
       custom-job-label: Standard
-
-  openapi-drift:
-    name: "OpenAPI Drift"
-    uses: ./.github/workflows/800-call-openapi-drift.yaml
-    needs:
-      - code-compiles
-    with:
-      custom-job-label: Standard
-
-  helm-lint:
-    name: "Helm Lint"
-    uses: ./.github/workflows/800-call-helm-lint.yaml
-    with:
-      custom-job-label: Standard
-
-  helm-install:
-    name: "Helm Install"
-    uses: ./.github/workflows/800-call-helm-install.yaml
-    needs:
-      - helm-lint
-    with:
-      custom-job-label: Standard

@@ -57,11 +57,11 @@ This repo uses [Conventional Commits](https://www.conventionalcommits.org). The 
 
 | Type                | Bump  | Example                                 |
 |---------------------|-------|-----------------------------------------|
-| `feat`              | minor | `feat: add /metrics endpoint`           |
+| `feat`              | minor | `feat: add export subcommand`           |
 | `fix`               | patch | `fix: handle nil DSN in IsHealthy`      |
-| `refactor`, `build` | patch | `refactor: extract proxy IP helper`     |
-| breaking change     | minor | `feat!: rename APP_OPENAPI_TITLE` (or `BREAKING CHANGE:` footer) |
-| `chore`, `ci`, `docs`, `style`, `test` | none | `docs: clarify CORS default` |
+| `refactor`, `build` | patch | `refactor: extract pool stats helper`   |
+| breaking change     | minor | `feat!: rename APP_DAEMON_LOG_LEVEL` (or `BREAKING CHANGE:` footer) |
+| `chore`, `ci`, `docs`, `style`, `test` | none | `docs: clarify pool sizing default` |
 
 Subject line: imperative mood, no trailing period, ≤72 chars. The `prepare-commit-msg` hook will append your DCO line automatically.
 
@@ -78,10 +78,11 @@ Subject line: imperative mood, no trailing period, ≤72 chars. The `prepare-com
 
 See [`.claude/conventions.md`](.claude/conventions.md). Highlights:
 
-- Functional options for builders (`module.WithRoutes(...)` etc.).
+- **Cobra command tree, no Viper.** Config layering goes through `internal/config` + `internal/env`; flags overlay onto `*application.Config` in each command's `PersistentPreRunE`.
+- New subcommands live under `internal/cli/`; register them in `internal/cli/root.go`'s `NewRootCommand`.
 - `Application` lifecycle methods split into `application_<subsystem>.go` files; the base `application.go` only holds the struct and lifecycle skeleton.
-- Errors use `joomcode/errorx` namespaces (`internal/errors/fs.go`).
-- OpenAPI metadata lives next to handlers via `endpoint.With*` builder options — no comment-annotation grammars.
+- Errors use `joomcode/errorx` namespaces (`internal/errors/`).
+- ants/v2 is the only goroutine-pool library — fan out work through `app.Pool()` rather than constructing per-subsystem pools.
 
 ## Reporting security issues
 

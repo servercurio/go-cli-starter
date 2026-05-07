@@ -5,20 +5,13 @@
 - `task test` — Runs `go test -parallel 4 -cover -coverprofile cover.out -race -v ./...` (with `CGO_ENABLED=1` for the race detector). The `cover.out` profile is written into the repo root and removed by `task clean`.
 - `task vendor` — Runs `go mod tidy` followed by `go mod vendor`. Use after any `go.mod` change.
 - `task generate` — Runs `go generate ./...`. Required after a fresh clone (and run automatically by `task build`) because `internal/version/commit.txt` is gitignored but is `//go:embed`-ed.
-- `task openapi:gen` — Renders the OpenAPI spec to `docs/openapi.yaml`. Run after any route or schema change so the checked-in spec stays in sync.
-- `task openapi:check` — Re-renders the spec to a temp file and `diff`s against `docs/openapi.yaml`. Fails when they differ — same check CI runs (`OpenAPI Drift`).
 - `task build` — Cross-compiles 6 binaries (linux/darwin/windows × amd64/arm64) into `bin/`. Calls `task generate` first.
-- `task hash` — Writes one `bin/<binary>.sha256` file per built binary (`shasum -c` compatible). Run locally to verify a build (`cd bin && shasum -a 256 -c appsvrd-linux-amd64.sha256`).
-- `task sign` — Depends on `task hash`. GPG-signs **only** each `.sha256` file (producing `bin/<binary>.sha256.asc`). Binaries themselves are NOT signed — the signed hash transitively pins the binary, and consumers verify with `gpg --verify bin/appsvrd-linux-amd64.sha256.asc bin/appsvrd-linux-amd64.sha256 && shasum -a 256 -c bin/appsvrd-linux-amd64.sha256`. Requires `gpg` with a configured signing key.
+- `task hash` — Writes one `bin/<binary>.sha256` file per built binary (`shasum -c` compatible). Run locally to verify a build (`cd bin && shasum -a 256 -c appcli-linux-amd64.sha256`).
+- `task sign` — Depends on `task hash`. GPG-signs **only** each `.sha256` file (producing `bin/<binary>.sha256.asc`). Binaries themselves are NOT signed — the signed hash transitively pins the binary, and consumers verify with `gpg --verify bin/appcli-linux-amd64.sha256.asc bin/appcli-linux-amd64.sha256 && shasum -a 256 -c bin/appcli-linux-amd64.sha256`. Requires `gpg` with a configured signing key.
 - `task sbom` — Generates CycloneDX 1.5 SBOMs at `bin/sbom.json` and `bin/sbom.xml` via `cyclonedx-gomod`, then GPG-signs each output (`bin/sbom.{json,xml}.asc`). Listed in `.releaserc.json`'s GitHub assets and run by `publishCmd`, so each release ships both flavours plus their signatures.
-- `task run:daemon` — Builds for the current platform and runs the daemon locally.
-- `task build:container` / `task run:container` — Build / run the Docker image (local single-arch).
+- `task run:serve` — Builds for the current platform and runs `appcli serve` (the daemon example). Ctrl-C stops it.
+- `task run:copy` — Builds for the current platform and runs `appcli copy README.md /tmp/copy.md` (the one-shot example).
+- `task build:container` / `task run:container` — Build / run the Docker image (local single-arch). `run:container` invokes the bare ENTRYPOINT with `--help`.
 - `task container:build:multiarch` — Multi-arch (linux/amd64,linux/arm64) buildx push to `ghcr.io/servercurio/go-cli-starter`. Reads version from `internal/version/version.txt`. Used by the release pipeline; expects the caller to have run `docker login ghcr.io` first.
 - `task container:sbom` / `task container:sbom:sign` — Generate `bin/container-sbom.{json,xml}` for the published container image via `syft`, then GPG-sign each.
-- `task helm:lint` / `task helm:template` — Lint and render the chart under `charts/go-cli-starter/`. `helm:template` uses `ci/full-values.yaml` plus a TLS overlay and injects monitoring API versions so every gated resource (ServiceMonitor / PodMonitor / PodLogs / TLS) renders.
-- `task helm:package` — Packages the chart into `bin/go-cli-starter-<VERSION>.tgz`, reading `<VERSION>` from `internal/version/version.txt`.
-- `task helm:hash` / `task helm:sign` — Hash + GPG-sign the packaged chart (`bin/go-cli-starter-<VERSION>.tgz.sha256.asc`). Same hash-only signing policy as binaries.
-- `task helm:sbom` / `task helm:sbom:sign` — Generate `bin/helm-sbom.{json,xml}` for the packaged chart via `syft`, then GPG-sign each.
-- `task helm:test` — Runs `chart-testing` (`ct`) lint against `charts/`. Requires `ct` on `$PATH` (CI installs it from the upstream release tarball).
-- `task helm:push:oci` — Pushes the packaged chart to `oci://ghcr.io/servercurio/charts`. Captures the OCI digest into `bin/helm-oci.digest` for downstream attestation steps.
 - `task clean` — Removes `bin/`, `dist/`, and coverage output.
