@@ -11,8 +11,9 @@ import (
 // a check that doesn't honour the deadline will still complete in its own
 // time, but a check that observes the context (e.g. forwards it to a
 // PingContext call) will be cancelled and Snapshot can move on. 500ms
-// leaves another 500ms under kubelet's default 1s probe timeout for
-// marshalling and writing the response body.
+// matches the budget previously used for HTTP readiness probes and
+// remains a sensible default for any caller that polls health on a
+// short interval.
 const defaultCheckTimeout = 500 * time.Millisecond
 
 // Status is the overall or component-level health state.
@@ -34,19 +35,20 @@ type ComponentResult struct {
 	Details map[string]any `json:"details,omitempty" yaml:"details,omitempty"`
 }
 
-// Report is the aggregated response body returned by /readyz and /healthz.
-// Status is the conjunction of every component's status: UP iff all UP.
+// Report is the aggregated snapshot of every registered component's
+// health. Status is the conjunction of every component's status: UP iff
+// all UP.
 type Report struct {
 	Status     Status                     `json:"status" yaml:"status"`
 	Components map[string]ComponentResult `json:"components" yaml:"components"`
 }
 
 // CheckFunc is the contract a component implements to participate in health
-// reports. Implementations should be cheap (the function may be called on
-// every readyz request) and must honour the supplied context — Snapshot
-// derives a per-check deadline from it (defaultCheckTimeout) so a hung
-// dependency can't stall the readiness probe past kubelet's threshold.
-// Checks that do no I/O may safely ignore the context.
+// reports. Implementations should be cheap (the function may be called
+// frequently) and must honour the supplied context — Snapshot derives a
+// per-check deadline from it (defaultCheckTimeout) so a hung dependency
+// can't stall callers indefinitely. Checks that do no I/O may safely
+// ignore the context.
 type CheckFunc func(ctx context.Context) ComponentResult
 
 // Registry is a thread-safe collection of named CheckFuncs.
@@ -56,8 +58,8 @@ type Registry struct {
 }
 
 // NewRegistry returns an empty Registry. Lifecycle code should construct one
-// per Application instance and pass it to consumers (router.Config, the
-// v1 handlers, etc.).
+// per Application instance and pass it to consumers via the
+// app.HealthRegistry() accessor.
 func NewRegistry() *Registry {
 	return &Registry{checks: map[string]CheckFunc{}}
 }
@@ -90,10 +92,9 @@ func (r *Registry) Unregister(name string) {
 //
 // Each check is invoked with a child of ctx that carries a deadline of
 // defaultCheckTimeout. Checks that honour the context (e.g. by forwarding
-// it to PingContext or http calls) get hard-cancelled when the budget
-// expires; checks that ignore it still run synchronously to completion,
-// so this is cooperative rather than preemptive. The four shipped checks
-// are all either trivial struct reads or already context-aware.
+// it to PingContext) get hard-cancelled when the budget expires; checks
+// that ignore it still run synchronously to completion, so this is
+// cooperative rather than preemptive.
 func (r *Registry) Snapshot(ctx context.Context) Report {
 	if r == nil {
 		return Report{Status: StatusUp, Components: map[string]ComponentResult{}}

@@ -11,15 +11,13 @@ import (
 
 // Config represents the logging configuration for the application.
 type Config struct {
-	Daemon     *LoggerConfig `yaml:"daemon" json:"daemon"`
-	HttpAccess *LoggerConfig `yaml:"httpAccess" json:"httpAccess"`
+	Daemon *LoggerConfig `yaml:"daemon" json:"daemon"`
 }
 
-// FromEnv hydrates Daemon and HttpAccess from environment variables prefixed
-// "<prefix>_DAEMON_LOG_*" and "<prefix>_HTTP_ACCESS_LOG_*" respectively.
+// FromEnv hydrates Daemon from environment variables prefixed
+// "<prefix>_DAEMON_LOG_*".
 func (c *Config) FromEnv(prefix string) {
 	c.Daemon.FromEnv(env.AddPrefix(prefix, "daemon_log"))
-	c.HttpAccess.FromEnv(env.AddPrefix(prefix, "http_access_log"))
 }
 
 // LoggerConfig represents the configuration for a single logger.
@@ -69,7 +67,6 @@ func (c *Config) Validate() error {
 	}
 	return errors.Join(
 		c.Daemon.Validate("daemon"),
-		c.HttpAccess.Validate("httpAccess"),
 	)
 }
 
@@ -91,12 +88,10 @@ func (l *LoggerConfig) Validate(name string) error {
 }
 
 // DefaultLoggingConfig returns a Config with daemon logging enabled at info
-// with pretty-printing on, and HTTP access logging disabled by default
-// (callers typically toggle it via env vars in production).
+// with pretty-printing on.
 func DefaultLoggingConfig() *Config {
 	return &Config{
-		Daemon:     NewLoggerConfig(zerolog.LevelInfoValue, true, false, true),
-		HttpAccess: NewLoggerConfig(zerolog.LevelErrorValue, false, false, false),
+		Daemon: NewLoggerConfig(zerolog.LevelInfoValue, true, false, true),
 	}
 }
 

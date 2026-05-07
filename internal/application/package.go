@@ -1,8 +1,8 @@
-// Package application owns the daemon lifecycle: loading and validating
-// configuration, building the global middleware stack, configuring the HTTP
-// and TLS servers (with optional ACME/auto-issued certs), wiring the
-// database/ORM, OpenAPI/Swagger UI, health registry, and registered routing
-// modules, and shutting everything down on signal. cmd/daemon constructs an
-// Application via NewApplication, registers domain modules, then runs the
-// Configure → Initialize → Start sequence.
+// Package application owns the CLI lifecycle: loading and validating
+// configuration, wiring the optional database/ORM, the goroutine pool, and
+// the health registry, and unwinding subsystems cleanly on shutdown.
+//
+// internal/cli constructs an Application via NewApplication and runs the
+// Configure → Initialize sequence inside each subcommand's RunE — Run for
+// one-shot commands and RunUntilSignal for long-running daemons.
 package application

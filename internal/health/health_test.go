@@ -128,26 +128,3 @@ func TestRegistry_SnapshotEnforcesPerCheckBudget(t *testing.T) {
 	assert.Less(elapsed, 2*defaultCheckTimeout,
 		"Snapshot should return within ~one per-check budget, not stall on the hung check")
 }
-
-func TestFormatFromAccept(t *testing.T) {
-	assert := asrt.New(t)
-
-	cases := []struct {
-		accept string
-		want   Format
-	}{
-		{"", FormatJSON},
-		{"*/*", FormatJSON},
-		{"application/json", FormatJSON},
-		{"application/json, text/plain", FormatJSON},
-		{"application/yaml", FormatYAML},
-		{"application/x-yaml", FormatYAML},
-		{"text/yaml", FormatYAML},
-		{"application/health+yaml", FormatYAML},
-		{"APPLICATION/YAML", FormatYAML}, // case-insensitive
-	}
-
-	for _, c := range cases {
-		assert.Equal(c.want, FormatFromAccept(c.accept), "Accept=%q", c.accept)
-	}
-}

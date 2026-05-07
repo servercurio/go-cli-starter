@@ -17,12 +17,8 @@ import (
 // once Initialize has returned.
 var Daemon zerolog.Logger
 
-// Access is the package-wide structured logger for HTTP access events. It's
-// swapped in by Initialize and used by EchoMiddleware.
-var Access zerolog.Logger
-
 // m guards Initialize so concurrent Notify* calls during startup don't race
-// while replacing Daemon and Access.
+// while replacing Daemon.
 var m sync.Mutex
 
 // Initialize the logging system with the given configuration.
@@ -35,7 +31,6 @@ func Initialize(c *Config) {
 	zerolog.CallerMarshalFunc = formatCaller
 
 	Daemon = newLogger(c.Daemon, os.Stdout)
-	Access = newLogger(c.HttpAccess, os.Stderr)
 }
 
 // newLogger builds a zerolog.Logger from a LoggerConfig and writer. Returns

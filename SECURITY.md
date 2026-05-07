@@ -29,7 +29,7 @@ Out of scope:
 
 - Vulnerabilities in third-party dependencies. Report those upstream; if exploitation requires this project to expose them in a non-default way, that part of the chain is in scope.
 - Findings from automated scanners without a working proof of concept.
-- Configuration choices made by downstream consumers (this is a starter template — production decisions about TLS modes, reverse-proxy trust, auth, etc. are the deploying party's responsibility).
+- Configuration choices made by downstream consumers (this is a starter template — production decisions about subcommand surface, file-system trust boundaries, secrets handling, etc. are the deploying party's responsibility).
 
 ## Supported Versions
 

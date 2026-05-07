@@ -48,12 +48,24 @@ func (app *Application) initializeDatabase() error {
 	return nil
 }
 
-// shutdownDatabase closes the database connection pool. Mirrors the shape of
-// shutdownHttpServer / shutdownTlsServer so Application.Start can fan
-// shutdown across subsystems uniformly. Errors are logged but not returned —
-// shutdown should always make progress.
+// shutdownDatabase closes the database connection pool. Errors are logged
+// but not returned — shutdown should always make progress.
 func (app *Application) shutdownDatabase() {
+	if !app.config.Database.Enabled() {
+		return
+	}
 	if err := database.Disconnect(); err != nil {
 		logging.Daemon.Warn().Err(err).Msg("error closing database connection")
 	}
+}
+
+// NotifyDatabaseConfig emits the resolved database configuration (with the
+// DSN credential masked) to the daemon log. No-op for a nil config.
+func NotifyDatabaseConfig(cfg *database.Config) {
+	if cfg == nil {
+		return
+	}
+	logging.Daemon.Info().
+		EmbedObject(cfg).
+		Msg("database configuration")
 }
