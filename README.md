@@ -132,13 +132,39 @@ pool:
 
 ### Environment variables
 
-Every field has a corresponding `APP_<SUBSYSTEM>_<FIELD>` env var:
+Every field is hydrated under the `APP_` prefix. Defaults come from each subsystem's `DefaultConfig()`; an unset variable leaves the resolved value at its file or default.
 
-| Subsystem | Common variables |
-| --------- | ---------------- |
-| Logging   | `APP_DAEMON_LOG_ENABLED`, `APP_DAEMON_LOG_LEVEL`, `APP_DAEMON_LOG_PRETTY_PRINT`, `APP_DAEMON_LOG_INCLUDE_CALLER` |
-| Database  | `APP_DATABASE_DRIVER`, `APP_DATABASE_DSN`, `APP_DATABASE_MAX_OPEN_CONNS`, `APP_DATABASE_MAX_IDLE_CONNS`, `APP_DATABASE_CONN_MAX_LIFETIME`, `APP_DATABASE_CONN_MAX_IDLE_TIME` |
-| Pool      | `APP_POOL_SIZE`, `APP_POOL_NON_BLOCKING`, `APP_POOL_EXPIRY_DURATION`, `APP_POOL_PRE_ALLOC`, `APP_POOL_MAX_BLOCKING_TASKS` |
+#### Logging (`APP_DAEMON_LOG_*`)
+
+| Variable                          | Default | Description                                                                                                       |
+| --------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------- |
+| `APP_DAEMON_LOG_ENABLED`          | `true`  | Toggle the daemon logger. `false` swaps in `zerolog.Nop()` so callers can keep emitting events without overhead.  |
+| `APP_DAEMON_LOG_LEVEL`            | `info`  | Verbosity. One of `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `panic` (parsed by `zerolog.ParseLevel`).   |
+| `APP_DAEMON_LOG_PRETTY_PRINT`     | `true`  | Render via zerolog's `ConsoleWriter` (coloured, human-readable). Set `false` for newline-delimited JSON output.   |
+| `APP_DAEMON_LOG_INCLUDE_CALLER`   | `false` | Append the caller's `file:line` to every event. Useful in development; adds runtime cost in tight log loops.      |
+
+#### Database (`APP_DATABASE_*`)
+
+The database subsystem is opt-in. Leave `APP_DATABASE_DSN` empty (the default) and `Application.Initialize` skips connection setup, migrations, and the ORM entirely.
+
+| Variable                          | Default      | Description                                                                                                                          |
+| --------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `APP_DATABASE_DRIVER`             | `pgx`        | `database/sql` driver name. PostgreSQL via pgx ships in the starter; other drivers require importing them in `internal/database/`.   |
+| `APP_DATABASE_DSN`                | _(empty)_    | Connection string. **Empty disables the database subsystem entirely** (Connect/Migrate become no-ops; no `database` health check).   |
+| `APP_DATABASE_MAX_OPEN_CONNS`     | `25`         | Max open connections in the pool. Zero or negative means unlimited (matches `database/sql` default).                                 |
+| `APP_DATABASE_MAX_IDLE_CONNS`     | `5`          | Max idle connections retained in the pool. Lower than `MAX_OPEN_CONNS` so the pool can shed cold connections.                        |
+| `APP_DATABASE_CONN_MAX_LIFETIME`  | `1h`         | Max lifetime of a connection before recycling. Useful for credential rotation or proxies that drop long-lived connections.           |
+| `APP_DATABASE_CONN_MAX_IDLE_TIME` | `5m`         | Max time an idle connection may sit in the pool before being closed.                                                                 |
+
+#### Pool (`APP_POOL_*`)
+
+| Variable                          | Default                | Description                                                                                                                                                          |
+| --------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `APP_POOL_SIZE`                   | `runtime.NumCPU() × 2` | Maximum concurrently-running goroutines. A value `<= 0` means unlimited (ants treats this as `math.MaxInt32`). The `--workers` flag overlays this.                   |
+| `APP_POOL_NON_BLOCKING`           | `false`                | Rejection-on-full behaviour. When `true`, `Submit` returns `PoolExhausted` instead of blocking the caller — set for latency-sensitive paths that prefer to shed load. |
+| `APP_POOL_EXPIRY_DURATION`        | `1m`                   | Idle-worker reap interval. `time.ParseDuration` syntax (`30s`, `5m`, `1h`).                                                                                          |
+| `APP_POOL_PRE_ALLOC`              | `false`                | When `true`, ants allocates the worker queue at construction instead of growing on demand. Useful when `SIZE` is large and known up front.                           |
+| `APP_POOL_MAX_BLOCKING_TASKS`     | `0`                    | Bounds the number of callers that may block in `Submit` when the pool is full and `NON_BLOCKING=false`. `0` (the default) means unbounded blocking.                  |
 
 ### Flag overlay
 
