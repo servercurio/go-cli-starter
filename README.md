@@ -81,8 +81,8 @@ task test
 ```
 cmd/appcli/          # main package — Cobra Execute() shim
 internal/
-  application/       # Application lifecycle (Configure → Initialize → Run/RunUntilSignal)
-  cli/               # Cobra command tree (root, serve, copy, version) + flag overlay
+  application/       # Application lifecycle (Configure → Initialize → Run/RunUntilSignal) and subcommand bodies (Copy, Serve)
+  cli/               # Cobra command tree (thin shells delegating to Application) + flag overlay
   pool/              # Goroutine pool wrapping panjf2000/ants
   config/            # YAML/JSON config-file loader with multi-path search
   env/               # Type-safe environment-variable parsers
@@ -186,7 +186,7 @@ The root command exposes a small set of persistent flags that overlay onto the l
 appcli serve
 ```
 
-Initialises the database (if a DSN is configured), the goroutine pool, and the health registry; logs a `daemon ready` event with pool stats; then blocks until a shutdown signal arrives. Replace the body in `internal/cli/serve.go` with your own loop.
+Initialises the database (if a DSN is configured), the goroutine pool, and the health registry; logs a `daemon ready` event with pool stats; then blocks until a shutdown signal arrives. The Cobra command in `internal/cli/serve.go` is a thin shell that delegates to `Application.Serve` (`internal/application/application_serve.go`) — replace the body there with your own loop.
 
 ### `copy` (one-shot example)
 
@@ -198,7 +198,7 @@ appcli copy README.md /tmp/copy.md
 appcli copy --recursive --workers 8 ./src /tmp/dst
 ```
 
-`--recursive` walks the source tree and submits each file copy through `app.Pool().SubmitWithContext(...)`. The `--workers` flag bounds concurrency by overriding `pool.size`.
+`--recursive` calls `Application.Copy` (`internal/application/application_copy.go`), which walks the source tree and submits each file copy through `app.Pool().SubmitWithContext(...)`. The `--workers` flag bounds concurrency by overriding `pool.size`.
 
 ### `version`
 
@@ -239,9 +239,11 @@ Migrations run on every successful boot (`database.Migrate`).
 
 ## Adding a subcommand
 
-1. Create a new file under `internal/cli/` returning a `*cobra.Command`. Wire any subcommand-specific flags to a local `*flags` struct.
-2. Add it to the slice in `NewRootCommand` (in `internal/cli/root.go`).
-3. Inside `RunE`, reach for `rc.app` (already constructed and configured by `PersistentPreRunE`); call `app.Initialize()` then either `app.Run(ctx, body)` (one-shot) or `app.RunUntilSignal(ctx, body)` (daemon).
+Subcommand behavior lives on `*application.Application`; Cobra files are thin shells that translate flags/args into a single method call. The two-file pattern:
+
+1. Add a method on `*Application` in `internal/application/application_<name>.go`. It owns the full lifecycle: call `app.Initialize()`, then return `app.Run(ctx, body)` (one-shot) or `app.RunUntilSignal(ctx, body)` (daemon) around the work itself. `Application.Copy` and `Application.Serve` are the canonical references.
+2. Create a Cobra command file under `internal/cli/` returning a `*cobra.Command`. Wire subcommand-specific flags to a local `*flags` struct, and have `RunE` delegate in one line: `return rc.app.<Name>(cmd.Context(), ...)`.
+3. Register the new command in the slice in `NewRootCommand` (`internal/cli/root.go`).
 
 That's it. Help text, completion, env-var hydration, and config loading all flow automatically from the existing infrastructure.
 

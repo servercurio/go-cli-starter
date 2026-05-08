@@ -19,7 +19,7 @@ Container image builds go through `task build:container` (local) or `task contai
 - POSIX-style flags with `pflag`/Cobra long names (`--workers`); short forms only when there is an obvious one-letter mnemonic (`-r` for `--recursive`).
 - Layered configuration precedence is **defaults → file → env → flags**. Flag overlay only fires when `cmd.Flags().Changed(...)` is true so a defaulted flag value cannot clobber file/env settings.
 - Subcommands should return non-zero exit codes on failure; `cobra.Command.Execute()` already maps `RunE` errors to non-zero.
-- Long-running daemon subcommands use `app.RunUntilSignal(ctx, body)`; one-shot subcommands use `app.Run(ctx, body)`.
+- Subcommand behavior is implemented as an exported method on `*Application` (e.g. `Application.Copy`, `Application.Serve`) that owns its full Initialize → Run / RunUntilSignal lifecycle. Long-running daemon entry points wrap their work in `app.RunUntilSignal(ctx, body)`; one-shot entry points wrap their work in `app.Run(ctx, body)`. Cobra `RunE` closures stay thin: a single delegating call (`return rc.app.<Name>(cmd.Context(), ...)`) into the matching method.
 
 ## Requirements
 
