@@ -27,6 +27,6 @@ Container image builds go through `task build:container` (local) or `task contai
 - The agent shall always ask the user before modifying files
 - The agent shall provide concise explanations of the actions it intends to take with reasons why. A list of alternative approaches considered should be made available as well.
 - If there is a file called `CLAUDE.local.md` at the project root then the agent will take additional instructions from that file.
-- The agent shall never generate a commit. The user must always review and create commits themselves.
-- The agent is not an author of the code, only the user.
+- The agent shall not create commits, pull requests, or issues unless the user explicitly requests one. Absent an explicit request, the user reviews and creates them. When the user does request the action, the agent may proceed and shall still follow every other rule in this section (no AI attribution, GPG + DCO sign-off on commits, etc.).
+- The agent is not an author of the code, only the user. Even when creating a commit on the user's behalf, attribution remains with the user.
 - The agent shall never add origin or attribution information (such as "Created by Claude", "Generated with Claude Code", "Co-Authored-By: Claude", or any similar marker) to commit messages, pull request titles, pull request descriptions, code comments, or any other repository content.
