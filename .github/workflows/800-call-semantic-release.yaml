@@ -18,7 +18,7 @@ on:
         description: "Go Version:"
         type: string
         required: false
-        default: "1.26.3"
+        default: "1.26.4"
       task-version:
         description: "Task Version:"
         type: string
