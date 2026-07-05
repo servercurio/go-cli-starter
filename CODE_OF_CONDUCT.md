@@ -11,10 +11,10 @@ This Code of Conduct applies within all project spaces — issues, pull requests
 
 ## Reporting
 
-Reports of unacceptable behavior may be sent to the project maintainer:
+Reports of unacceptable behavior may be submitted privately using GitHub's private reporting tool for this repository:
 
-- **Email:** nathan.klick@servercurio.com
-- **Subject prefix:** `[CONDUCT] go-cli-starter`
+1. Open <https://github.com/servercurio/go-cli-starter/security/advisories/new>.
+2. Describe the incident, including any relevant context, links, or screenshots.
 
 All reports will be reviewed and investigated promptly and fairly. Reporters' identities will be kept confidential.
 
