@@ -8,7 +8,7 @@
 - `task build` — Cross-compiles 6 binaries (linux/darwin/windows × amd64/arm64) into `bin/`. Calls `task generate` first.
 - `task hash` — Writes one `bin/<binary>.sha256` file per built binary (`shasum -c` compatible). Run locally to verify a build (`cd bin && shasum -a 256 -c appcli-linux-amd64.sha256`).
 - `task sign` — Depends on `task hash`. GPG-signs **only** each `.sha256` file (producing `bin/<binary>.sha256.asc`). Binaries themselves are NOT signed — the signed hash transitively pins the binary, and consumers verify with `gpg --verify bin/appcli-linux-amd64.sha256.asc bin/appcli-linux-amd64.sha256 && shasum -a 256 -c bin/appcli-linux-amd64.sha256`. Requires `gpg` with a configured signing key.
-- `task sbom` — Generates CycloneDX 1.5 SBOMs at `bin/sbom.json` and `bin/sbom.xml` via `cyclonedx-gomod`, then GPG-signs each output (`bin/sbom.{json,xml}.asc`). Listed in `.releaserc.json`'s GitHub assets and run by `publishCmd`, so each release ships both flavours plus their signatures.
+- `task sbom` — Generates CycloneDX 1.6 SBOMs at `bin/sbom.json` and `bin/sbom.xml` via `cyclonedx-gomod`, then GPG-signs each output (`bin/sbom.{json,xml}.asc`). Listed in `.releaserc.json`'s GitHub assets and run by `publishCmd`, so each release ships both flavours plus their signatures.
 - `task run:serve` — Builds for the current platform and runs `appcli serve` (the daemon example). Ctrl-C stops it.
 - `task run:copy` — Builds for the current platform and runs `appcli copy README.md /tmp/copy.md` (the one-shot example).
 - `task build:container` / `task run:container` — Build / run the Docker image (local single-arch). `run:container` invokes the bare ENTRYPOINT with `--help`.

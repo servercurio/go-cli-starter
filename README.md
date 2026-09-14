@@ -53,7 +53,7 @@ Replace them with your own subcommands and you have a new CLI.
 
 ## Requirements
 
-- Go 1.26+
+- Go 1.27+
 - [Task](https://taskfile.dev) (canonical build runner)
 - Docker (optional, for container builds)
 

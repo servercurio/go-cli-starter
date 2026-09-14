@@ -1,6 +1,6 @@
 module github.com/servercurio/go-cli-starter
 
-go 1.26
+go 1.27
 
 require (
 	github.com/Masterminds/semver/v3 v3.5.0
@@ -35,7 +35,7 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/sync v0.21.0 // indirect
+	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
-	golang.org/x/text v0.38.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
 )
