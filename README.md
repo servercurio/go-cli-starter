@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/logo.svg" alt="Server Curio — Project Templates" width="600">
+  <img src="docs/logo-mark.svg" alt="Server Curio" width="160">
 </p>
 
 # go-cli-starter
@@ -93,7 +93,7 @@ internal/
   database/orm/      # Optional Bun ORM singleton
   obfusicate/        # Credential masking for log redaction
   version/           # Build-time version metadata (commit, semver, tag)
-docs/                # Non-Go documentation assets (logo.svg)
+docs/                # Non-Go documentation assets (logo.svg, logo-mark.svg)
 .github/workflows/   # CI: code-compiles, unit-test, vulncheck, semantic-release
 ```
 
