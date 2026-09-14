@@ -93,7 +93,7 @@ internal/
   database/orm/      # Optional Bun ORM singleton
   obfusicate/        # Credential masking for log redaction
   version/           # Build-time version metadata (commit, semver, tag)
-docs/                # Non-Go documentation assets (logo.svg)
+docs/                # Non-Go documentation assets (logo.svg, logo-mark.svg)
 .github/workflows/   # CI: code-compiles, unit-test, vulncheck, semantic-release
 ```
 
