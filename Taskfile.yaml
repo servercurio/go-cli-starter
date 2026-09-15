@@ -87,6 +87,11 @@ tasks:
     cmds:
       - go install github.com/apache/skywalking-eyes/cmd/license-eye@v0.9.0
       - "$(go env GOPATH)/bin/license-eye -c .licenserc.yaml header check"
+      - cmd: |
+          lb='{'
+          want="$lb$lb- /* SPDX-License-Identifier: Apache-2.0 */ -}}"
+          bad=$(find charts -path '*/templates/*' -type f ! -exec sh -c 'head -n 1 "$1" | grep -qF -- "$2"' _ {} "$want" \; -print 2>/dev/null || true)
+          if [ -n "$bad" ]; then echo "Helm templates must start with $want:"; echo "$bad"; exit 1; fi
 
   license:fix:
     desc: "Add missing SPDX license headers (Helm templates need a manual Go-template comment)"

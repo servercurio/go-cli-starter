@@ -55,3 +55,17 @@ jobs:
 
       - name: Check License Headers
         run: license-eye -c .licenserc.yaml header check
+
+      # license-eye accepts any comment style, but a `#` header outside
+      # `{{- if }}` leaves a comment-only manifest when a Helm template is
+      # disabled, which fails `helm install`. Templates must start with a
+      # Go-template comment instead.
+      - name: Check Helm Template Headers
+        env:
+          WANT: "{{- /* SPDX-License-Identifier: Apache-2.0 */ -}}"
+        run: |
+          bad=$(find charts -path '*/templates/*' -type f ! -exec sh -c 'head -n 1 "$1" | grep -qF -- "$2"' _ {} "$WANT" \; -print 2>/dev/null || true)
+          if [ -n "$bad" ]; then
+            for f in $bad; do echo "::error file=$f::Helm templates must start with $WANT"; done
+            exit 1
+          fi
