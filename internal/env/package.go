@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // Package env provides small helpers for reading environment variables into
 // typed config fields. The conventions are: prefixes are upper-cased and
 // joined to keys with an underscore (see AddPrefix), and SetXxxValue helpers

@@ -1,3 +1,7 @@
+<!--
+  ~ SPDX-License-Identifier: Apache-2.0
+-->
+
 # Conventions
 
 - **Cobra command tree, no Viper.** Config layering goes through `internal/config` (YAML/JSON file loader) and `internal/env` (typed env-var hydration). Cobra owns the command tree and flag parsing; flags overlay onto `*application.Config` inside each command's `PersistentPreRunE` (or a subcommand's `PreRunE`). Gate every flag overlay on `cmd.Flags().Changed(...)` so a defaulted flag doesn't clobber values loaded from file/env. Don't pull Viper in — the existing layering already implements the same precedence rules with one fewer dependency.

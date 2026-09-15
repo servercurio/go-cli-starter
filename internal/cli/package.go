@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // Package cli owns the Cobra command tree and the shared
 // PersistentPreRunE that loads configuration before any subcommand runs.
 //

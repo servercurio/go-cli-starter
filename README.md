@@ -1,3 +1,7 @@
+<!--
+  ~ SPDX-License-Identifier: Apache-2.0
+-->
+
 <p align="center">
   <img src="docs/logo.svg" alt="Server Curio — Project Templates" width="600">
 </p>

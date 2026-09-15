@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 version: 3
 output: prefixed
 
@@ -53,11 +55,12 @@ tasks:
       - go clean -cache -testcache
 
   lint:
-    desc: "Run linters on all Go files"
+    desc: "Run linters on all Go files and check SPDX license headers"
     cmds:
       - task: lint:format
       - task: lint:vet
       - task: lint:golangci
+      - task: lint:license
 
   lint:format:
     internal: true
@@ -77,6 +80,19 @@ tasks:
     cmds:
       - go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
       - "$(go env GOPATH)/bin/golangci-lint run --timeout=5m ./..."
+
+  lint:license:
+    internal: true
+    desc: "Check SPDX license headers with license-eye and .licenserc.yaml"
+    cmds:
+      - go install github.com/apache/skywalking-eyes/cmd/license-eye@v0.9.0
+      - "$(go env GOPATH)/bin/license-eye -c .licenserc.yaml header check"
+
+  license:fix:
+    desc: "Add missing SPDX license headers (Helm templates need a manual Go-template comment)"
+    cmds:
+      - go install github.com/apache/skywalking-eyes/cmd/license-eye@v0.9.0
+      - "$(go env GOPATH)/bin/license-eye -c .licenserc.yaml header fix"
 
   vendor:
     desc: "Update Go modules and vendor directory"

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package config
 
 // EnvironmentSource is implemented by any config struct that can hydrate

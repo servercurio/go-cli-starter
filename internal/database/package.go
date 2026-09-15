@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // Package database manages the application's optional SQL database connection
 // pool, schema migrations, and ORM singleton. The starter ships PostgreSQL
 // (pgx) bindings by default; replace the driver and dialect to swap engines.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // Package errors defines the joomcode/errorx namespaces and typed error
 // values used across the project. Centralizing them here lets callers branch
 // on category (filesystem, database, openapi, …) without string-matching on

@@ -20,6 +20,12 @@ permissions:
   contents: read
 
 jobs:
+  license-headers:
+    name: "License Headers"
+    uses: ./.github/workflows/800-call-license-headers.yaml
+    with:
+      custom-job-label: Standard
+
   code-compiles:
     name: "Code Compiles"
     uses: ./.github/workflows/800-call-code-compiles.yaml

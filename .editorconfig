@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 # EditorConfig: https://editorconfig.org
 # Top-level config; no parent files are consulted.
 root = true
