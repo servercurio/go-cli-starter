@@ -1,3 +1,7 @@
+<!--
+  ~ SPDX-License-Identifier: Apache-2.0
+-->
+
 # Module Structure
 
 - `cmd/appcli/` — `main` package; tiny shim that calls `cli.NewRootCommand().Execute()`. Cobra owns argv parsing, help, and shell-completion.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // Package pool wraps github.com/panjf2000/ants/v2 with project conventions:
 // a Config that hydrates from environment variables under APP_POOL_*, an
 // errorx-categorised Submit error surface, and a context-aware

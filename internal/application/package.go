@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // Package application owns the CLI lifecycle: loading and validating
 // configuration, wiring the optional database/ORM, the goroutine pool, and
 // the health registry, and unwinding subsystems cleanly on shutdown.

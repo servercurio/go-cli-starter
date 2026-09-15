@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // Package obfusicate provides small helpers for masking secrets in log output
 // (e.g. database DSN passwords, long random tokens). The misspelled package
 // name is intentional — it matches the existing import path and is kept as

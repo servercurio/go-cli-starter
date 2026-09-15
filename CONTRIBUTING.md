@@ -1,3 +1,7 @@
+<!--
+  ~ SPDX-License-Identifier: Apache-2.0
+-->
+
 # Contributing
 
 Thanks for your interest in `go-cli-starter`. The repository is a starter template, so contributions are oriented toward keeping the scaffold clean, generic, and reusable rather than expanding feature scope.
@@ -73,6 +77,19 @@ Subject line: imperative mood, no trailing period, ≤72 chars. The `prepare-com
 4. Open the PR. The "PR Checks" workflow runs `task lint`, `task test`, and `govulncheck`; the "PR Formatting" workflow validates the title against Conventional Commits.
 5. Address review feedback in additional commits — don't force-push during review unless asked.
 6. Squash on merge is fine; the squash subject should still be a valid Conventional Commit.
+
+## License headers
+
+Every tracked file starts with an SPDX license identifier in its own comment syntax, for example
+`// SPDX-License-Identifier: Apache-2.0` in Go and `# SPDX-License-Identifier: Apache-2.0` in YAML. The
+**License Headers** check (`.github/workflows/800-call-license-headers.yaml`, using
+[license-eye](https://github.com/apache/skywalking-eyes)) fails pull requests with a missing header.
+
+- CI runs `task lint:license`, the same task you run locally (`task lint` includes it), and
+  `task license:fix` adds missing headers. The license-eye version is pinned once, as
+  `LICENSE_EYE_VERSION` in `Taskfile.yaml`.
+- Files that cannot hold a comment (`LICENSE`, JSON, `go.sum`, `.gitkeep`, embedded data) are listed in
+  `.licenserc.yaml`; keep that list short.
 
 ## Code conventions
 

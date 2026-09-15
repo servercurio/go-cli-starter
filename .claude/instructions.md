@@ -1,3 +1,7 @@
+<!--
+  ~ SPDX-License-Identifier: Apache-2.0
+-->
+
 # Instructions for AI agents
 
 ## Tech Stack & Go Version

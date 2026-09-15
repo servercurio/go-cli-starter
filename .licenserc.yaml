@@ -1,0 +1,44 @@
+# SPDX-License-Identifier: Apache-2.0
+
+# License header policy, checked by `task lint:license` (license-eye, pinned by
+# LICENSE_EYE_VERSION in Taskfile.yaml), which CI runs. Every tracked
+# file carries an SPDX identifier in its own comment syntax. paths-ignore lists
+# only files whose format cannot hold a comment; keep it short so real source
+# files cannot hide in it.
+header:
+  - paths:
+      - "**"
+    paths-ignore:
+      - "LICENSE"
+      - "**/go.sum"
+      - "**/*.json"
+      - "**/.gitkeep"
+      - "**/version/version.txt" # embedded as the bare release version string
+      - "charts/*/templates/**" # checked by the second block below
+    license:
+      content: |
+        SPDX-License-Identifier: Apache-2.0
+    comment: never
+    language:
+      # license-eye maps .mod to other languages; go.mod accepts // comments.
+      GoModule:
+        extensions: [".mod"]
+        filenames: ["go.mod"]
+        comment_style_id: DoubleSlash
+      Ignorefiles:
+        filenames: ["CODEOWNERS", ".helmignore"]
+        comment_style_id: Hashtag
+  # Helm templates start with {{- /* SPDX-License-Identifier: Apache-2.0 */ -}},
+  # added by hand, so a disabled template renders nothing. license-eye accepts
+  # any comment style here, so `task lint:license` also checks the first line of
+  # each template.
+  - paths:
+      - "charts/*/templates/**"
+    license:
+      content: |
+        SPDX-License-Identifier: Apache-2.0
+    comment: never
+    language:
+      HelmTemplate:
+        extensions: [".yaml", ".yml", ".tpl", ".txt"]
+        comment_style_id: SlashAsterisk

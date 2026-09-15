@@ -1,7 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+
 version: 3
 output: prefixed
 
 vars:
+  # license-eye (github.com/apache/skywalking-eyes) version for lint:license and
+  # license:fix; the only place it is pinned. CI runs `task lint:license`.
+  LICENSE_EYE_VERSION: v0.9.0
   PROJECT_NAME: appcli
   ARCH: [amd64, arm64]
   OS: [linux, darwin, windows]
@@ -53,11 +58,12 @@ tasks:
       - go clean -cache -testcache
 
   lint:
-    desc: "Run linters on all Go files"
+    desc: "Run linters on all Go files and check SPDX license headers"
     cmds:
       - task: lint:format
       - task: lint:vet
       - task: lint:golangci
+      - task: lint:license
 
   lint:format:
     internal: true
@@ -77,6 +83,29 @@ tasks:
     cmds:
       - go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
       - "$(go env GOPATH)/bin/golangci-lint run --timeout=5m ./..."
+
+  lint:license:
+    desc: "Check SPDX license headers and Helm template header style (CI runs this task)"
+    cmds:
+      - task: tool:license-eye
+      - "$(go env GOPATH)/bin/license-eye -c .licenserc.yaml header check"
+      - cmd: |
+          lb='{'
+          want="$lb$lb- /* SPDX-License-Identifier: Apache-2.0 */ -}}"
+          bad=$(find charts -path '*/templates/*' -type f ! -exec sh -c 'head -n 1 "$1" | grep -qF -- "$2"' _ {} "$want" \; -print 2>/dev/null || true)
+          if [ -n "$bad" ]; then echo "Helm templates must start with $want:"; echo "$bad"; exit 1; fi
+
+  license:fix:
+    desc: "Add missing SPDX license headers (Helm templates need a manual Go-template comment)"
+    cmds:
+      - task: tool:license-eye
+      - "$(go env GOPATH)/bin/license-eye -c .licenserc.yaml header fix"
+
+  tool:license-eye:
+    internal: true
+    desc: "Install license-eye {{.LICENSE_EYE_VERSION}}"
+    cmds:
+      - go install github.com/apache/skywalking-eyes/cmd/license-eye@{{.LICENSE_EYE_VERSION}}
 
   vendor:
     desc: "Update Go modules and vendor directory"

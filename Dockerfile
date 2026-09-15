@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 # Pinned to ubuntu:noble-20260410 by digest for supply-chain integrity.
 # Multi-arch manifest list covers linux/amd64 and linux/arm64 (the build
 # matrix's two targets). Dependabot's docker ecosystem opens PRs that bump
