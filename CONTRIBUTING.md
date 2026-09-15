@@ -85,7 +85,9 @@ Every tracked file starts with an SPDX license identifier in its own comment syn
 **License Headers** check (`.github/workflows/800-call-license-headers.yaml`, using
 [license-eye](https://github.com/apache/skywalking-eyes)) fails pull requests with a missing header.
 
-- `task lint` runs the same check locally, and `task license:fix` adds missing headers.
+- CI runs `task lint:license`, the same task you run locally (`task lint` includes it), and
+  `task license:fix` adds missing headers. The license-eye version is pinned once, as
+  `LICENSE_EYE_VERSION` in `Taskfile.yaml`.
 - Files that cannot hold a comment (`LICENSE`, JSON, `go.sum`, `.gitkeep`, embedded data) are listed in
   `.licenserc.yaml`; keep that list short.
 

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
-# License header policy, checked by license-eye (apache/skywalking-eyes) in
-# .github/workflows/800-call-license-headers.yaml and `task lint`. Every tracked
+# License header policy, checked by `task lint:license` (license-eye, pinned by
+# LICENSE_EYE_VERSION in Taskfile.yaml), which CI runs. Every tracked
 # file carries an SPDX identifier in its own comment syntax. paths-ignore lists
 # only files whose format cannot hold a comment; keep it short so real source
 # files cannot hide in it.
@@ -30,8 +30,8 @@ header:
         comment_style_id: Hashtag
   # Helm templates start with {{- /* SPDX-License-Identifier: Apache-2.0 */ -}},
   # added by hand, so a disabled template renders nothing. license-eye accepts
-  # any comment style here, so the workflow and `task lint` also check the first
-  # line of each template.
+  # any comment style here, so `task lint:license` also checks the first line of
+  # each template.
   - paths:
       - "charts/*/templates/**"
     license:

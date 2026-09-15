@@ -4,6 +4,9 @@ version: 3
 output: prefixed
 
 vars:
+  # license-eye (github.com/apache/skywalking-eyes) version for lint:license and
+  # license:fix; the only place it is pinned. CI runs `task lint:license`.
+  LICENSE_EYE_VERSION: v0.9.0
   PROJECT_NAME: appcli
   ARCH: [amd64, arm64]
   OS: [linux, darwin, windows]
@@ -82,10 +85,9 @@ tasks:
       - "$(go env GOPATH)/bin/golangci-lint run --timeout=5m ./..."
 
   lint:license:
-    internal: true
-    desc: "Check SPDX license headers with license-eye and .licenserc.yaml"
+    desc: "Check SPDX license headers and Helm template header style (CI runs this task)"
     cmds:
-      - go install github.com/apache/skywalking-eyes/cmd/license-eye@v0.9.0
+      - task: tool:license-eye
       - "$(go env GOPATH)/bin/license-eye -c .licenserc.yaml header check"
       - cmd: |
           lb='{'
@@ -96,8 +98,14 @@ tasks:
   license:fix:
     desc: "Add missing SPDX license headers (Helm templates need a manual Go-template comment)"
     cmds:
-      - go install github.com/apache/skywalking-eyes/cmd/license-eye@v0.9.0
+      - task: tool:license-eye
       - "$(go env GOPATH)/bin/license-eye -c .licenserc.yaml header fix"
+
+  tool:license-eye:
+    internal: true
+    desc: "Install license-eye {{.LICENSE_EYE_VERSION}}"
+    cmds:
+      - go install github.com/apache/skywalking-eyes/cmd/license-eye@{{.LICENSE_EYE_VERSION}}
 
   vendor:
     desc: "Update Go modules and vendor directory"
